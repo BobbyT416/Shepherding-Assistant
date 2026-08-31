@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shepherding Assistant</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f5f8;color:#17202a}
+header{background:#182a4a;color:white;padding:18px 22px}header h1{margin:0 0 5px;font-size:25px}
+nav{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;background:white;border-bottom:1px solid #d7dce3}
+button{border:0;border-radius:7px;padding:10px 14px;background:#2457d6;color:#fff;font-weight:700;cursor:pointer}
+button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b42318}.page{display:none;max-width:1050px;margin:auto;padding:20px}.page.active{display:block}
+.card{background:#fff;border:1px solid #d8dde5;border-radius:11px;padding:17px;margin:13px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.stat{font-size:29px;font-weight:700}
+label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
+input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;border:1px solid #bdc5d0;border-radius:7px;background:#fff;font:inherit}
+textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:650px){.row{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e1e4e8;text-align:left}
+.call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
+.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:16px;z-index:10}.modal.open{display:flex}.modalbox{background:#fff;border-radius:12px;width:min(650px,100%);max-height:92vh;overflow:auto;padding:20px}
+.small{font-size:13px;color:#586474}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid #d8dde5;border-radius:8px;overflow:hidden;margin-top:14px}
+.calhead{background:#eef2f7;font-weight:700;text-align:center;padding:9px;border-right:1px solid #d8dde5}
+.day{min-height:105px;padding:7px;border-right:1px solid #d8dde5;border-top:1px solid #d8dde5;background:#fff}
+.day.muted{background:#f7f8fa;color:#9aa3af}.daynum{font-weight:700;font-size:13px;margin-bottom:5px}
+.visit{display:block;width:100%;text-align:left;padding:6px 7px;margin:4px 0;border-radius:6px;background:#e8eef9;color:#17202a;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.visit:hover{background:#dce6f8}@media(max-width:700px){.day{min-height:82px;padding:4px}.visit{font-size:11px;padding:5px}.calhead{font-size:11px}}
+
+</style>
+</head>
+<body>
+<header><h1>Shepherding Assistant</h1><div id="headerGroup">One Field Service Group • Local Only</div></header>
+<nav>
+<button data-page="dashboard">Dashboard</button><button data-page="publishers">Publishers</button>
+<button data-page="shepherding">Shepherding</button><button data-page="calendar">Calendar</button>
+<button data-page="group">Group Setup</button><button data-page="settings">Settings</button>
+</nav>
+
+<section id="dashboard" class="page active">
+<h2>Shepherding Dashboard</h2>
+<div class="card"><h3>Field Service Group</h3>
+<p><b id="dashGroup">Not configured</b></p>
+<p>Group Overseer: <b id="dashOverseer">Not configured</b><br>Assistant: <b id="dashAssistant">Not configured</b></p></div>
+<div id="stats" class="grid"></div>
+<div class="card"><h3>Needs Attention</h3><div id="attention">None.</div></div>
+<div class="card"><h3>Upcoming Shepherding Calls</h3><div id="upcoming">None.</div></div>
+</section>
+
+<section id="publishers" class="page">
+<h2>Publishers</h2><button id="addPublisher">+ Add Publisher</button>
+<div class="card"><div class="row"><input id="publisherSearch" placeholder="Search publishers"><button id="clearPublisherSearch" class="secondary">Clear Search</button></div><p id="publisherCount" class="small"></p></div>
+<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Household</th><th>Last Shepherding</th><th>Status</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
+</section>
+
+<section id="shepherding" class="page">
+<h2>Shepherding</h2><button id="scheduleCall">+ Schedule Shepherding Call</button>
+<div class="card"><h3>All Calls</h3><div id="callList">No calls recorded.</div></div>
+</section>
+
+<section id="calendar" class="page">
+<h2>Shepherding Calendar</h2>
+<div class="card"><div class="actions" style="margin-top:0"><button id="listViewBtn">List View</button><button id="monthViewBtn" class="secondary">Calendar View</button></div>
+<label>Month</label><input id="calendarMonth" type="month"><div id="calendarContent"></div></div>
+</section>
+
+<section id="group" class="page">
+<h2>Group Setup</h2>
+<div class="card">
+<label>Group Name</label><input id="groupName" placeholder="e.g. North Group">
+<div class="row"><div><label>Group Overseer</label><select id="groupOverseer"></select></div>
+<div><label>Assistant</label><select id="groupAssistant"></select></div></div>
+<p class="small">The dropdowns use the publishers/elders entered in this copy of the group.</p>
+<button id="saveGroup">Save Group</button>
+</div>
+<div class="card"><h3>Other Elders</h3><div id="elderList"></div>
+<div class="row"><select id="elderSelect"></select><button id="addElder" class="secondary">Add Selected Elder</button></div>
+<p class="small">Add elders by selecting them from publishers whose role is Elder. The Group Overseer and Assistant are excluded from this list.</p></div>
+</section>
+
+<section id="settings" class="page">
+<h2>Settings & Local Data</h2><div class="card"><b>Storage status:</b> <span id="storageStatus">Local data active</span></div>
+<div class="card"><label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
+<p class="small">A publisher is flagged when the last completed shepherding call is older than this interval.</p></div>
+<div class="card"><h3>Transfer / Backup</h3><p>Nothing is uploaded. Export creates a backup file on this device. Import restores that file into this copy.</p>
+<div class="actions"><button id="exportData">Export Group Data</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div></div>
+<div class="card"><h3>Local Storage</h3><p class="small">This app uses one fixed local data key. Keep using the same app folder/file when updating the program so the browser can retain its local data. The export backup is the safe way to move data to another elder's device.</p>
+<button id="clearData" class="danger">Erase This Device's Group Data</button></div>
+</section>
+
+<div id="modal" class="modal"><div class="modalbox" id="modalBox"></div></div>
+
+<script>
+"use strict";
+const DATA_KEY="shepherding_assistant_group_v2";
+let db=loadData();
+
+function fresh(){return {version:2,group:{name:"",overseer:"",assistant:"",elders:[]},publishers:[],calls:[],reminderMonths:3}}
+function loadData(){
+ try{const x=JSON.parse(localStorage.getItem(DATA_KEY));if(x&&x.version===2)return x}catch(e){}
+ return fresh();
+}
+function persist(){localStorage.setItem(DATA_KEY,JSON.stringify(db));render()}
+function $(id){return document.getElementById(id)}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function uid(){return (crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+"-"+Math.random()}
+function people(){
+ return [...new Set([...db.publishers.map(p=>p.name),...(db.group.elders||[])].filter(Boolean))]
+}
+function personOptions(selected=""){
+ return '<option value="">— Select —</option>'+people().map(n=>'<option value="'+esc(n)+'"'+(n===selected?' selected':'')+'>'+esc(n)+'</option>').join("")
+}
+function brotherOptions(selected=""){
+ const a=[db.group.overseer,db.group.assistant,...(db.group.elders||[])].filter(Boolean);
+ const names=[...new Set(a)];
+ return '<option value="">— Select —</option>'+names.map(n=>'<option value="'+esc(n)+'"'+(n===selected?' selected':'')+'>'+esc(n)+'</option>').join("")
+}
+function status(p){
+ if(!p.last)return ["over","Never contacted"];
+ const months=(Date.now()-new Date(p.last+"T12:00:00"))/86400000/30.44;
+ return months>=Number(db.reminderMonths)?["over","Overdue"]:months>=Number(db.reminderMonths)-.5?["soon","Due Soon"]:["ok","Up to Date"];
+}
+function show(page){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(page).classList.add("active")}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
+ if(b.dataset.page==="publishers"){$("publisherSearch").value="";renderPublishers()}
+ show(b.dataset.page)
+}));
+
+function renderGroup(){
+ $("headerGroup").textContent=db.group.name||"One Field Service Group • Local Only";
+ $("dashGroup").textContent=db.group.name||"Not configured";
+ $("dashOverseer").textContent=db.group.overseer||"Not configured";
+ $("dashAssistant").textContent=db.group.assistant||"Not configured";
+ $("groupName").value=db.group.name;
+ $("groupOverseer").innerHTML=personOptions(db.group.overseer);
+ $("groupAssistant").innerHTML=personOptions(db.group.assistant);
+ $("reminderMonths").value=db.reminderMonths;
+ $("elderList").innerHTML=(db.group.elders||[]).map((n,i)=>'<p>'+esc(n)+' <button class="secondary" data-remove-elder="'+i+'">Remove</button></p>').join("")||'<p class="small">No other elders added.</p>';
+ const elderChoices=db.publishers.filter(p=>p.role==="Elder").map(p=>p.name).filter(n=>n!==db.group.overseer&&n!==db.group.assistant&&!db.group.elders.includes(n));
+ $("elderSelect").innerHTML='<option value="">— Select Elder —</option>'+elderChoices.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
+ document.querySelectorAll("[data-remove-elder]").forEach(b=>b.onclick=()=>{db.group.elders.splice(Number(b.dataset.removeElder),1);persist()});
+}
+function renderPublishers(){
+ const q=($("publisherSearch").value||"").trim().toLowerCase();
+ const a=db.publishers.filter(p=>!q||(p.name+" "+p.role+" "+p.house+" "+(p.phone||"")+" "+(p.email||"")).toLowerCase().includes(q));
+ $("publisherCount").textContent=q ? ("Showing "+a.length+" of "+db.publishers.length+" publishers") : (db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group");
+ $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last||"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(""):'<tr><td colspan="6">'+(q?'No publishers match that search.':'No publishers yet.')+'</td></tr>';
+ document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
+}
+function formatCallDateTime(c){
+ const d=new Date(c.date+"T"+(c.time||"12:00"));
+ if(Number.isNaN(d.getTime())) return esc(c.date)+" "+esc(c.time||"");
+ const day=d.toLocaleDateString("en-US",{weekday:"long"});
+ const date=d.toLocaleDateString("en-US",{month:"long",day:"numeric"});
+ const time=d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
+ return day+", "+date+" at "+time;
+}
+function callButton(c){return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(c.name)+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+'</button>'}
+function renderCalls(){
+ const a=[...db.calls].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+ $("callList").innerHTML=a.length?a.map(callButton).join(""):'No calls recorded.';
+ document.querySelectorAll("[data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+ $("upcoming").innerHTML=a.filter(c=>c.status==="Scheduled"&&c.date>=new Date().toISOString().slice(0,10)).slice(0,8).map(callButton).join("")||"None.";
+ document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+}
+let calendarMode="list";
+function renderCalendar(){
+ let m=$("calendarMonth").value;
+ if(!m){m=new Date().toISOString().slice(0,7);$("calendarMonth").value=m}
+ $("listViewBtn").className=calendarMode==="list"?"":"secondary";
+ $("monthViewBtn").className=calendarMode==="calendar"?"":"secondary";
+ if(calendarMode==="list"){
+   const a=db.calls.filter(c=>c.date.startsWith(m)).sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+   $("calendarContent").innerHTML=a.length?'<div style="margin-top:14px">'+a.map(callButton).join("")+'</div>':"<p>No shepherding calls this month.</p>";
+ }else{
+   const [yr,mo]=m.split("-").map(Number), first=new Date(yr,mo-1,1), last=new Date(yr,mo,0);
+   const prevDays=first.getDay(), total=last.getDate();
+   let cells="";
+   ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=>cells+='<div class="calhead">'+d+'</div>');
+   for(let i=0;i<prevDays;i++)cells+='<div class="day muted"></div>';
+   for(let day=1;day<=total;day++){
+     const ds=yr+"-"+String(mo).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+     const calls=db.calls.filter(c=>c.date===ds).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+     cells+='<div class="day"><div class="daynum">'+day+'</div>'+calls.map(c=>{
+       const t=c.time?new Date("2000-01-01T"+c.time).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase():"";
+       return '<button class="visit" data-call="'+esc(c.id)+'" title="Open visit details">'+esc((t?t+" ":"")+c.name)+'</button>'
+     }).join("")+'</div>';
+   }
+   const used=prevDays+total, tail=(7-(used%7))%7;
+   for(let i=0;i<tail;i++)cells+='<div class="day muted"></div>';
+   $("calendarContent").innerHTML='<div class="calgrid">'+cells+'</div>';
+ }
+ document.querySelectorAll("#calendarContent [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+}
+function renderDashboard(){
+ const s=db.publishers.map(status);
+ $("stats").innerHTML='<div class="card"><div class="stat">'+db.publishers.length+'</div>Publishers</div><div class="card"><div class="stat">'+s.filter(x=>x[0]==="over").length+'</div>Overdue</div><div class="card"><div class="stat">'+s.filter(x=>x[0]==="soon").length+'</div>Due Soon</div><div class="card"><div class="stat">'+s.filter(x=>x[0]==="ok").length+'</div>Up to Date</div>';
+ $("attention").innerHTML=db.publishers.filter(p=>status(p)[0]!=="ok").map(p=>'<p><b>'+esc(p.name)+'</b> — '+status(p)[1]+'</p>').join("")||"None.";
+}
+function render(){
+ try{localStorage.setItem(DATA_KEY,JSON.stringify(db));$("storageStatus").textContent="Local data active — saved on this device"}catch(e){$("storageStatus").textContent="Unable to save local data"}
+ renderGroup();renderPublishers();renderCalls();renderCalendar();renderDashboard()
+}
+
+function openModal(content){$("modalBox").innerHTML=content;$("modal").classList.add("open")}
+function closeModal(){$("modal").classList.remove("open")}
+$("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+
+$("addPublisher").onclick=()=>{
+ openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName"><label>Role</label><select id="fRole"><option>Publisher</option><option>Auxiliary Pioneer</option><option>Regular Pioneer</option><option>Elder</option><option>Ministerial Servant</option></select><label>Household</label><input id="fHouse"><label>Phone</label><input id="fPhone"><label>Email</label><input id="fEmail"><label>Last Shepherding Contact</label><input id="fLast" type="date"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
+ $("cancel").onclick=closeModal;
+ $("savePub").onclick=()=>{const name=$("fName").value.trim();if(!name){alert("Enter a name.");return}db.publishers.push({id:uid(),name,role:$("fRole").value,house:$("fHouse").value,phone:$("fPhone").value,email:$("fEmail").value,last:$("fLast").value,notes:$("fNotes").value});closeModal();persist()};
+};
+$("scheduleCall").onclick=()=>{
+ if(!db.publishers.length){alert("Add a publisher first.");return}
+ openModal('<h2>Schedule Shepherding Call</h2><label>Publisher</label><select id="cPub">'+db.publishers.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join("")+'</select><div class="row"><div><label>Date</label><input id="cDate" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+brotherOptions()+'</select></div><div><label>Brother 2</label><select id="cB2">'+brotherOptions()+'</select></div></div><label>Type</label><select id="cType"><option>Home Visit</option><option>Kingdom Hall</option><option>Telephone</option><option>Other</option></select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
+ $("cancelCall").onclick=closeModal;
+ $("saveCall").onclick=()=>{
+   const p=db.publishers.find(x=>x.id===$("cPub").value);const b1=$("cB1").value,b2=$("cB2").value;
+   if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
+   db.calls.push({id:uid(),publisherId:p.id,name:p.name,date:$("cDate").value,time:$("cTime").value,brother1:b1,brother2:b2,type:$("cType").value,notes:$("cNotes").value,status:"Scheduled"});
+   closeModal();persist();
+ };
+};
+function showHistory(publisherId){
+ const p=db.publishers.find(x=>x.id===publisherId);if(!p)return;
+ const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+ let body=history.length?history.map(c=>{
+   const brothers=[c.brother1,c.brother2].filter(Boolean).join(" & ")||"Not recorded";
+   return '<div class="card"><h3>'+formatCallDateTime(c)+'</h3><p><b>Brothers:</b> '+esc(brothers)+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+'</p><p><b>Notes:</b><br>'+esc(c.notes||"No notes recorded.")+'</p><button class="secondary" data-history-call="'+esc(c.id)+'">Open Visit Details</button></div>'
+ }).join(""):'<div class="card"><p>No completed shepherding calls have been recorded for '+esc(p.name)+'.</p></div>';
+ openModal('<h2>Shepherding History</h2><p><b>'+esc(p.name)+'</b></p>'+body+'<div class="actions"><button id="closeHistory" class="secondary">Close</button></div>');
+ $("closeHistory").onclick=closeModal;
+ document.querySelectorAll("[data-history-call]").forEach(b=>b.onclick=()=>{const id=b.dataset.historyCall;closeModal();editCall(id)});
+}
+function editCall(id){
+ const c=db.calls.find(x=>x.id===id);if(!c)return;
+ const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
+ openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select><div class="row"><div><label>Date</label><input id="eDate" type="date" value="'+esc(c.date)+'"></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+brotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+brotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes)+'</textarea><div class="actions"><button id="updateCall">Save Changes</button><button id="deleteCall" class="danger">Delete</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
+ $("cancelEdit").onclick=closeModal;
+ $("deleteCall").onclick=()=>{if(confirm("Delete this shepherding call?")){db.calls=db.calls.filter(x=>x.id!==id);closeModal();persist()}};
+ $("updateCall").onclick=()=>{
+   const p=db.publishers.find(x=>x.id===$("ePub").value),b1=$("eB1").value,b2=$("eB2").value;
+   if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
+   c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother2=b2;c.type=$("eType").value;c.status=$("eStatus").value;c.notes=$("eNotes").value;
+   if(c.status==="Completed"){const pub=db.publishers.find(x=>x.id===c.publisherId);if(pub)pub.last=c.date}
+   closeModal();persist();
+ };
+}
+
+$("saveGroup").onclick=()=>{
+ const name=$("groupName").value.trim();
+ const overseer=$("groupOverseer").value;
+ const assistant=$("groupAssistant").value;
+ if(overseer&&assistant&&overseer===assistant){alert("The Group Overseer and Assistant must be two different people.");return}
+ db.group.name=name;db.group.overseer=overseer;db.group.assistant=assistant;
+ persist();
+ alert("Group information saved.");
+};
+$("addElder").onclick=()=>{const n=$("elderSelect").value;if(!n)return;db.group.elders=db.group.elders||[];if(!db.group.elders.includes(n)){db.group.elders.push(n);persist()}};
+$("publisherSearch").oninput=renderPublishers;$("clearPublisherSearch").onclick=()=>{$("publisherSearch").value="";renderPublishers()};
+$("calendarMonth").onchange=renderCalendar;$("listViewBtn").onclick=()=>{calendarMode="list";renderCalendar()};$("monthViewBtn").onclick=()=>{calendarMode="calendar";renderCalendar()};
+$("reminderMonths").onchange=()=>{db.reminderMonths=Math.max(1,Number($("reminderMonths").value)||3);persist()};
+
+$("exportData").onclick=()=>{
+ const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"}),a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);a.download="Shepherding_Group_Backup_"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+$("importData").onclick=()=>$("importFile").click();
+$("importFile").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{try{const x=JSON.parse(r.result);if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls))throw Error();if(confirm("Replace the current group data with this backup?")){db=x;persist();alert("Group data imported successfully.")}}catch(err){alert("That backup file is not a valid Shepherding Assistant V2 backup.")}e.target.value=""};r.readAsText(f);
+};
+$("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this device? This cannot be undone unless you have exported a backup.")){localStorage.removeItem(DATA_KEY);db=fresh();render()}};
+
+render();
+</script>
+</body>
+</html>
