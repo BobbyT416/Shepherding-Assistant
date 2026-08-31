@@ -1,11 +1,6 @@
-SHEPHERDING ASSISTANT V2.13
-
-Changes:
-- Shepherding Call Time is left justified.
-- Date and Time controls are normalized to the same 48px height as the other form controls.
-- Date continues to display as "Monday, August 31" on the call screen.
-- Dashboard Upcoming remains "Monday, August 31 at 7:00 pm".
-- Existing functionality is unchanged.
-
-Version: 2.13
-Data remains local to this device/browser. Use Export Group Data before transferring to another elder.
+SHEPHERDING ASSISTANT V2.14
+- Time field left justified on iOS/Safari.
+- Date and Time controls normalized to 48px, matching the other fields.
+- Calendar-opened call: Save Changes or Cancel returns to Dashboard.
+- Dashboard Upcoming unchanged.
+- Version 2.14.

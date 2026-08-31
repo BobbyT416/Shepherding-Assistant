@@ -59,6 +59,30 @@ input[type="date"],input[type="time"]{
   right:42px;
   text-align:left;
 }
+
+/* V2.14 */
+input[type="date"],input[type="time"]{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:48px!important;
+  min-height:48px!important;
+  max-height:48px!important;
+  padding:0 14px!important;
+  margin:0!important;
+  text-align:left!important;
+  line-height:normal!important;
+  font:inherit!important;
+  display:block!important;
+}
+input[type="time"]::-webkit-date-and-time-value,
+input[type="date"]::-webkit-date-and-time-value{
+  text-align:left!important;
+  margin:0!important;
+}
+.friendly-date-input{height:48px!important;min-height:48px!important}
+.friendly-date-input input{height:48px!important;min-height:48px!important;max-height:48px!important}
 </style>
 </head>
 <body>
@@ -125,6 +149,7 @@ input[type="date"],input[type="time"]{
 <script>
 "use strict";
 const DATA_KEY="shepherding_assistant_group_v2";
+let returnToDashboardAfterCallEdit=false;
 let db=loadData();
 
 function fresh(){return {version:2,group:{name:"",overseer:"",assistant:"",elders:[]},publishers:[],calls:[],reminderMonths:3}}
@@ -236,7 +261,7 @@ function renderCalendar(){
    for(let i=0;i<tail;i++)cells+='<div class="day muted"></div>';
    $("calendarContent").innerHTML='<div class="calgrid">'+cells+'</div>';
  }
- document.querySelectorAll("#calendarContent [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+ document.querySelectorAll("#calendarContent [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call,true));
 }
 function renderDashboard(){
  const s=db.publishers.map(status);
@@ -285,7 +310,8 @@ function showHistory(publisherId){
  $("closeHistory").onclick=closeModal;
  document.querySelectorAll("[data-history-call]").forEach(b=>b.onclick=()=>{const id=b.dataset.historyCall;closeModal();editCall(id)});
 }
-function editCall(id){
+function editCall(id,fromCalendar=false){
+ returnToDashboardAfterCallEdit=!!fromCalendar;
  const c=db.calls.find(x=>x.id===id);if(!c)return;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
  openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select><div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+brotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+brotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes)+'</textarea><div class="actions"><button id="updateCall">Save Changes</button><button id="deleteCall" class="danger">Delete</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
@@ -329,6 +355,21 @@ $("importFile").onchange=e=>{
 $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this device? This cannot be undone unless you have exported a backup.")){localStorage.removeItem(DATA_KEY);db=fresh();render()}};
 
 render();
+
+/* V2.14 return to dashboard */
+document.addEventListener("click",function(e){
+  if(!returnToDashboardAfterCallEdit) return;
+  const b=e.target.closest("button");
+  if(!b) return;
+  const t=(b.textContent||"").trim().toLowerCase();
+  if(t==="save changes" || t==="cancel"){
+    setTimeout(function(){
+      if(typeof showPage==="function") showPage("dashboard");
+      else if(typeof renderDashboard==="function"){ $("page").innerHTML=""; renderDashboard(); }
+      returnToDashboardAfterCallEdit=false;
+    },50);
+  }
+},true);
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.13</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.14</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
