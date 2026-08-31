@@ -129,6 +129,30 @@ header.app-header h1{
   header.app-header h1{font-size:26px}
   #headerGroup{font-size:16px}
 }
+
+/* V2.18 — clickable publisher names */
+.publisher-name-button{
+  border:0!important;
+  background:none!important;
+  padding:0!important;
+  margin:0!important;
+  font:inherit!important;
+  font-weight:700!important;
+  color:#2457d6!important;
+  text-align:left!important;
+  cursor:pointer!important;
+  text-decoration:underline!important;
+  text-decoration-thickness:1px!important;
+  text-underline-offset:2px!important;
+}
+.publisher-name-button:active{opacity:.7}
+
+/* V2.19 — always-available Dashboard navigation */
+.modal-dashboard{
+  display:block!important;
+  width:max-content!important;
+  margin:10px 0 0 auto!important;
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -205,7 +229,7 @@ header.app-header h1{
 <button id="clearData" class="danger">Erase This Device's Group Data</button></div>
 </section>
 
-<div id="modal" class="modal"><div class="modalbox" id="modalBox"></div></div>
+<div id="modal" class="modal"><button id="modalDashboard" type="button" class="secondary modal-dashboard" style="display:none" onclick="closeModal();showPage('dashboard')">Dashboard</button><div class="modalbox" id="modalBox"></div></div>
 
 <script>
 "use strict";
@@ -262,8 +286,9 @@ function renderPublishers(){
  const q=($("publisherSearch").value||"").trim().toLowerCase();
  const a=db.publishers.filter(p=>!q||(p.name+" "+p.role+" "+p.house+" "+(p.phone||"")+" "+(p.email||"")).toLowerCase().includes(q));
  $("publisherCount").textContent=q ? ("Showing "+a.length+" of "+db.publishers.length+" publishers") : (db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group");
- $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last?formatDisplayDate(p.last):"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(""):'<tr><td colspan="6">'+(q?'No publishers match that search.':'No publishers yet.')+'</td></tr>';
+ $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'">'+esc(p.name)+'</button></td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last?formatDisplayDate(p.last):"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(""):'<tr><td colspan="6">'+(q?'No publishers match that search.':'No publishers yet.')+'</td></tr>';
  document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
+ document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
 }
 function updateFriendlyCallDate(dateId,timeId,outId){
  const date=$(dateId),out=$(outId);
@@ -334,11 +359,32 @@ function render(){
  renderGroup();renderPublishers();renderCalls();renderCalendar();renderDashboard()
 }
 
-function openModal(content){$("modalBox").innerHTML=content;$("modal").classList.add("open")}
-function closeModal(){$("modal").classList.remove("open")}
+function openModal(content){ $("modalDashboard").style.display="block";$("modalBox").innerHTML=content;$("modal").classList.add("open")}
+function closeModal(){ if($("modalDashboard")) $("modalDashboard").style.display="none";$("modal").classList.remove("open")}
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 
+function editPublisher(id){
+ const p=db.publishers.find(x=>x.id===id);
+ if(!p)return;
+ openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole"><option>Publisher</option><option>Auxiliary Pioneer</option><option>Regular Pioneer</option><option>Elder</option><option>Ministerial Servant</option></select><label>Household</label><input id="fHouse" value="'+esc(p.house||"")+'"><label>Phone</label><input id="fPhone" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="date" value="'+esc(p.last||"")+'"><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="cancel" class="secondary">Cancel</button></div>');
+ $("fRole").value=p.role||"Publisher";
+ $("cancel").onclick=closeModal;
+ $("fName").focus();
+ $("savePub").onclick=()=>{
+   const name=$("fName").value.trim();
+   if(!name){alert("Enter a name.");return}
+   p.name=name;
+   p.role=$("fRole").value;
+   p.house=$("fHouse").value;
+   p.phone=$("fPhone").value;
+   p.email=$("fEmail").value;
+   p.last=$("fLast").value;
+   p.notes=$("fNotes").value;
+   closeModal();
+   persist();
+ };
+}
 $("addPublisher").onclick=()=>{
  openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName"><label>Role</label><select id="fRole"><option>Publisher</option><option>Auxiliary Pioneer</option><option>Regular Pioneer</option><option>Elder</option><option>Ministerial Servant</option></select><label>Household</label><input id="fHouse"><label>Phone</label><input id="fPhone"><label>Email</label><input id="fEmail"><label>Last Shepherding Contact</label><input id="fLast" type="date"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
  $("cancel").onclick=closeModal;
@@ -432,5 +478,5 @@ document.addEventListener("click",function(e){
   }
 },true);
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.17</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.19</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
