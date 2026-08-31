@@ -1,6 +1,10 @@
-SHEPHERDING ASSISTANT V2.14
-- Time field left justified on iOS/Safari.
-- Date and Time controls normalized to 48px, matching the other fields.
-- Calendar-opened call: Save Changes or Cancel returns to Dashboard.
-- Dashboard Upcoming unchanged.
-- Version 2.14.
+SHEPHERDING ASSISTANT V2.15
+
+Changes:
+- Added the Shepherding Assistant logo to the application.
+- Added a clean branded application header.
+- Logo is packaged locally with the app, so no external image hosting is required.
+- Version 2.15.
+- Existing functionality is unchanged.
+
+The application remains local-device data only.
