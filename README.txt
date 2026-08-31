@@ -1,14 +1,11 @@
-SHEPHERDING ASSISTANT V2.12
+SHEPHERDING ASSISTANT V2.13
 
 Changes:
-- Shepherding Call Time fields are left justified to match the other form fields.
-- Dashboard Publishers / Overdue / Due Soon / Up to Date cards are now compact,
-  cleaner, and less visually bulky.
-- Existing counts, navigation, and functionality are unchanged.
-- Responsive layout uses four cards on wider screens and two-by-two on smaller screens.
-- Version indicator: 2.12.
+- Shepherding Call Time is left justified.
+- Date and Time controls are normalized to the same 48px height as the other form controls.
+- Date continues to display as "Monday, August 31" on the call screen.
+- Dashboard Upcoming remains "Monday, August 31 at 7:00 pm".
+- Existing functionality is unchanged.
 
-Dashboard Upcoming remains:
-Monday, August 31 at 7:00 pm
-
+Version: 2.13
 Data remains local to this device/browser. Use Export Group Data before transferring to another elder.

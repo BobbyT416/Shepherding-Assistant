@@ -33,6 +33,32 @@ input[type="time"]{text-align:left}
 .stat-card .stat{font-size:25px;line-height:1.05;margin-bottom:5px}
 .stat-label{font-size:13px;font-weight:700;color:#586474;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:700px){.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat-card{padding:12px}.stat-card .stat{font-size:23px}.stat-label{font-size:12px}}
+
+/* V2.13 form-control normalization */
+input[type="date"],input[type="time"]{
+  box-sizing:border-box;
+  width:100%;
+  height:48px;
+  min-height:48px;
+  padding:0 14px;
+  text-align:left;
+  font:inherit;
+  line-height:48px;
+}
+.friendly-date-input{
+  height:48px;
+  min-height:48px;
+}
+.friendly-date-input input{
+  height:48px;
+  min-height:48px;
+  padding:0 42px 0 14px;
+}
+.friendly-input-text{
+  left:14px;
+  right:42px;
+  text-align:left;
+}
 </style>
 </head>
 <body>
@@ -304,5 +330,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 
 render();
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.12</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.13</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
