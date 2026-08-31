@@ -83,49 +83,17 @@ input[type="date"]::-webkit-date-and-time-value{
 }
 .friendly-date-input{height:48px!important;min-height:48px!important}
 .friendly-date-input input{height:48px!important;min-height:48px!important;max-height:48px!important}
-
-/* V2.15 branding */
-.app-brand{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin-bottom:18px;
-}
-.app-brand img{
-  width:52px;
-  height:52px;
-  object-fit:contain;
-  border-radius:12px;
-  flex:0 0 52px;
-}
-.app-brand-text{
-  min-width:0;
-}
-.app-brand-title{
-  margin:0;
-  font-size:28px;
-  line-height:1.1;
-  font-weight:800;
-}
-.app-brand-tagline{
-  margin:4px 0 0;
-  font-size:13px;
-  color:#667085;
-}
-@media(max-width:700px){
-  .app-brand img{width:46px;height:46px;flex-basis:46px}
-  .app-brand-title{font-size:24px}
-}
 </style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b5ed7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Shepherding Assistant">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 </head>
 <body>
-<header><div class="app-brand">
-  <img src="shepherding-logo.png" alt="Shepherding Assistant logo">
-  <div class="app-brand-text">
-    <h1 class="app-brand-title">Shepherding Assistant</h1>
-    <p class="app-brand-tagline">Shepherding care made simple.</p>
-  </div>
-</div><div id="headerGroup">One Field Service Group • Local Only</div></header>
+<header><h1>Shepherding Assistant</h1><div id="headerGroup">One Field Service Group • Local Only</div></header>
 <nav>
 <button data-page="dashboard">Dashboard</button><button data-page="publishers">Publishers</button>
 <button data-page="shepherding">Shepherding</button><button data-page="calendar">Calendar</button>
@@ -410,5 +378,5 @@ document.addEventListener("click",function(e){
   }
 },true);
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.15</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.16</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>

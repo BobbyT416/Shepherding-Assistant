@@ -1,10 +1,17 @@
-SHEPHERDING ASSISTANT V2.15
+SHEPHERDING ASSISTANT V2.16
 
 Changes:
-- Added the Shepherding Assistant logo to the application.
-- Added a clean branded application header.
-- Logo is packaged locally with the app, so no external image hosting is required.
-- Version 2.15.
-- Existing functionality is unchanged.
+- Added the new shepherd/sheep/calendar app icon with no words.
+- Added iPhone/iPad Apple Touch Icon metadata.
+- Added a web app manifest for Home Screen / standalone web-app behavior.
+- Added 180x180, 192x192, and 512x512 icon files.
+- Version: 2.16.
 
-The application remains local-device data only.
+To add it to an iPhone Home Screen:
+1. Open the GitHub Pages app in Safari.
+2. Tap the Share button.
+3. Choose "Add to Home Screen".
+4. Confirm "Add".
+
+The icon should use the new artwork instead of a generic webpage icon.
+Data remains local to this device/browser.
