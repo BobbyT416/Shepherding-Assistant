@@ -9,7 +9,7 @@
 header{background:#182a4a;color:white;padding:18px 22px}header h1{margin:0 0 5px;font-size:25px}
 nav{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;background:white;border-bottom:1px solid #d7dce3}
 button{border:0;border-radius:7px;padding:10px 14px;background:#2457d6;color:#fff;font-weight:700;cursor:pointer}
-button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b42318}.page{display:none;max-width:1050px;margin:auto;padding:20px}.page.active{display:block}
+button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b42318}.page{display:none;max-width:1050px;margin:auto;padding:20px 20px 110px}.page.active{display:block}
 .card{background:#fff;border:1px solid #d8dde5;border-radius:11px;padding:17px;margin:13px 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.stat{font-size:29px;font-weight:700}
 label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
@@ -17,7 +17,7 @@ input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;
 textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:650px){.row{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e1e4e8;text-align:left}
 .call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
-.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:16px;z-index:10}.modal.open{display:flex}.modalbox{background:#fff;border-radius:12px;width:min(650px,100%);max-height:92vh;overflow:auto;padding:20px}
+.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:16px;z-index:10}.modal.open{display:flex}.modalbox{background:#fff;border-radius:12px;width:min(650px,100%);max-height:92vh;overflow:auto;padding:20px 20px 28px;margin-bottom:20px}
 .small{font-size:13px;color:#586474}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid #d8dde5;border-radius:8px;overflow:hidden;margin-top:14px}
 .calhead{background:#eef2f7;font-weight:700;text-align:center;padding:9px;border-right:1px solid #d8dde5}
@@ -143,8 +143,13 @@ function renderPublishers(){
  const q=($("publisherSearch").value||"").trim().toLowerCase();
  const a=db.publishers.filter(p=>!q||(p.name+" "+p.role+" "+p.house+" "+(p.phone||"")+" "+(p.email||"")).toLowerCase().includes(q));
  $("publisherCount").textContent=q ? ("Showing "+a.length+" of "+db.publishers.length+" publishers") : (db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group");
- $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last||"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(""):'<tr><td colspan="6">'+(q?'No publishers match that search.':'No publishers yet.')+'</td></tr>';
+ $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last?formatDisplayDate(p.last):"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(""):'<tr><td colspan="6">'+(q?'No publishers match that search.':'No publishers yet.')+'</td></tr>';
  document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
+}
+function formatDisplayDate(dateString){
+ const d=new Date(dateString+"T12:00:00");
+ if(Number.isNaN(d.getTime())) return dateString;
+ return d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
 }
 function formatCallDateTime(c){
  const d=new Date(c.date+"T"+(c.time||"12:00"));
@@ -181,8 +186,7 @@ function renderCalendar(){
      const ds=yr+"-"+String(mo).padStart(2,"0")+"-"+String(day).padStart(2,"0");
      const calls=db.calls.filter(c=>c.date===ds).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
      cells+='<div class="day"><div class="daynum">'+day+'</div>'+calls.map(c=>{
-       const t=c.time?new Date("2000-01-01T"+c.time).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase():"";
-       return '<button class="visit" data-call="'+esc(c.id)+'" title="Open visit details">'+esc((t?t+" ":"")+c.name)+'</button>'
+       return '<button class="visit" data-call="'+esc(c.id)+'" title="Open visit details">'+esc(c.name)+'</button>'
      }).join("")+'</div>';
    }
    const used=prevDays+total, tail=(7-(used%7))%7;
@@ -209,12 +213,14 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 $("addPublisher").onclick=()=>{
  openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName"><label>Role</label><select id="fRole"><option>Publisher</option><option>Auxiliary Pioneer</option><option>Regular Pioneer</option><option>Elder</option><option>Ministerial Servant</option></select><label>Household</label><input id="fHouse"><label>Phone</label><input id="fPhone"><label>Email</label><input id="fEmail"><label>Last Shepherding Contact</label><input id="fLast" type="date"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
  $("cancel").onclick=closeModal;
+ $("fName").focus();
  $("savePub").onclick=()=>{const name=$("fName").value.trim();if(!name){alert("Enter a name.");return}db.publishers.push({id:uid(),name,role:$("fRole").value,house:$("fHouse").value,phone:$("fPhone").value,email:$("fEmail").value,last:$("fLast").value,notes:$("fNotes").value});closeModal();persist()};
 };
 $("scheduleCall").onclick=()=>{
  if(!db.publishers.length){alert("Add a publisher first.");return}
  openModal('<h2>Schedule Shepherding Call</h2><label>Publisher</label><select id="cPub">'+db.publishers.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join("")+'</select><div class="row"><div><label>Date</label><input id="cDate" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+brotherOptions()+'</select></div><div><label>Brother 2</label><select id="cB2">'+brotherOptions()+'</select></div></div><label>Type</label><select id="cType"><option>Home Visit</option><option>Kingdom Hall</option><option>Telephone</option><option>Other</option></select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
  $("cancelCall").onclick=closeModal;
+ $("cPub").focus();
  $("saveCall").onclick=()=>{
    const p=db.publishers.find(x=>x.id===$("cPub").value);const b1=$("cB1").value,b2=$("cB2").value;
    if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
