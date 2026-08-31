@@ -1,9 +1,10 @@
-SHEPHERDING ASSISTANT V2.7
+SHEPHERDING ASSISTANT V2.8
 
 Changes:
-- Calendar publisher names always wrap naturally when they need more than one line.
-- Calendar cells can expand vertically for longer names.
-- Names are no longer truncated with an ellipsis.
-- Friendly shepherding date/time format remains: Monday, August 31 at 7:00 pm.
+- Shepherding call scheduling and detail screens now show:
+  Monday, August 31 at 7:00 pm
+- The friendly date/time display updates when the date or time is changed.
+- Calendar names wrap only at word boundaries; individual words are never split.
+- Calendar cells can grow vertically as needed, including portrait mode.
 
 Data remains local to this device/browser. Use Export Group Data before transferring to another elder.

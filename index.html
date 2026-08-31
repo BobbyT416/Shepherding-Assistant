@@ -21,12 +21,12 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .small{font-size:13px;color:#586474}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid #d8dde5;border-radius:8px;overflow:hidden;margin-top:14px}
 .calhead{background:#eef2f7;font-weight:700;text-align:center;padding:9px;border-right:1px solid #d8dde5}
-.day{min-height:105px;padding:7px;border-right:1px solid #d8dde5;border-top:1px solid #d8dde5;background:#fff}
+.day{min-height:105px;height:auto;padding:7px;border-right:1px solid #d8dde5;border-top:1px solid #d8dde5;background:#fff}
 .day.muted{background:#f7f8fa;color:#9aa3af}.daynum{font-weight:700;font-size:13px;margin-bottom:5px}
-.visit{display:block;width:100%;box-sizing:border-box;text-align:left;padding:6px 7px;margin:4px 0;border-radius:6px;background:#e8eef9;color:#17202a;font-size:12px;white-space:normal;overflow-wrap:anywhere;word-break:normal;line-height:1.2}
-.visit:hover{background:#dce6f8}@media(max-width:700px){.day{min-height:82px;padding:4px}.visit{font-size:11px;padding:5px}.calhead{font-size:11px}}
+.visit{display:block;width:100%;box-sizing:border-box;text-align:left;padding:6px 7px;margin:4px 0;border-radius:6px;background:#e8eef9;color:#17202a;font-size:12px;white-space:normal;overflow-wrap:normal;word-break:normal;hyphens:none;line-height:1.2}
+.visit:hover{background:#dce6f8}@media(max-width:700px){.day{min-height:82px;height:auto;padding:4px}.visit{font-size:11px;padding:5px}.calhead{font-size:11px}}
 
-.app-footer{text-align:center;padding:24px 20px 30px;margin-top:20px;border-top:1px solid #d8dde5;color:#586474;font-size:13px}.app-footer b{font-size:15px;color:#17202a}.app-footer .copyright{margin-top:6px;font-size:12px}</style>
+.app-footer{text-align:center;padding:24px 20px 30px;margin-top:20px;border-top:1px solid #d8dde5;color:#586474;font-size:13px}.app-footer b{font-size:15px;color:#17202a}.app-footer .copyright{margin-top:6px;font-size:12px}.friendly-date{margin:6px 0 12px;font-weight:600;color:#17202a}</style>
 </head>
 <body>
 <header><h1>Shepherding Assistant</h1><div id="headerGroup">One Field Service Group • Local Only</div></header>
@@ -146,6 +146,17 @@ function renderPublishers(){
  $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last?formatDisplayDate(p.last):"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(""):'<tr><td colspan="6">'+(q?'No publishers match that search.':'No publishers yet.')+'</td></tr>';
  document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
 }
+function updateFriendlyCallDate(dateId,timeId,outId){
+ const date=$(dateId),time=$(timeId),out=$(outId);
+ if(!date||!out)return;
+ if(!date.value){out.textContent="";return}
+ const dt=new Date(date.value+"T"+(time&&time.value?time.value:"12:00"));
+ if(Number.isNaN(dt.getTime())){out.textContent="";return}
+ const day=dt.toLocaleDateString("en-US",{weekday:"long"});
+ const md=dt.toLocaleDateString("en-US",{month:"long",day:"numeric"});
+ const tm=time&&time.value?dt.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase():"";
+ out.textContent=day+", "+md+(tm?" at "+tm:"");
+}
 function formatDisplayDate(dateString){
  const d=new Date(dateString+"T12:00:00");
  if(Number.isNaN(d.getTime())) return dateString;
@@ -218,9 +229,12 @@ $("addPublisher").onclick=()=>{
 };
 $("scheduleCall").onclick=()=>{
  if(!db.publishers.length){alert("Add a publisher first.");return}
- openModal('<h2>Schedule Shepherding Call</h2><label>Publisher</label><select id="cPub">'+db.publishers.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join("")+'</select><div class="row"><div><label>Date</label><input id="cDate" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+brotherOptions()+'</select></div><div><label>Brother 2</label><select id="cB2">'+brotherOptions()+'</select></div></div><label>Type</label><select id="cType"><option>Home Visit</option><option>Kingdom Hall</option><option>Telephone</option><option>Other</option></select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
+ openModal('<h2>Schedule Shepherding Call</h2><label>Publisher</label><select id="cPub">'+db.publishers.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join("")+'</select><div class="row"><div><label>Date</label><input id="cDate" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div id="cFriendlyDate" class="friendly-date"></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+brotherOptions()+'</select></div><div><label>Brother 2</label><select id="cB2">'+brotherOptions()+'</select></div></div><label>Type</label><select id="cType"><option>Home Visit</option><option>Kingdom Hall</option><option>Telephone</option><option>Other</option></select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
  $("cancelCall").onclick=closeModal;
  $("cPub").focus();
+ updateFriendlyCallDate("cDate","cTime","cFriendlyDate");
+ $("cDate").onchange=()=>updateFriendlyCallDate("cDate","cTime","cFriendlyDate");
+ $("cTime").onchange=()=>updateFriendlyCallDate("cDate","cTime","cFriendlyDate");
  $("saveCall").onclick=()=>{
    const p=db.publishers.find(x=>x.id===$("cPub").value);const b1=$("cB1").value,b2=$("cB2").value;
    if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
@@ -242,8 +256,11 @@ function showHistory(publisherId){
 function editCall(id){
  const c=db.calls.find(x=>x.id===id);if(!c)return;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
- openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select><div class="row"><div><label>Date</label><input id="eDate" type="date" value="'+esc(c.date)+'"></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+brotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+brotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes)+'</textarea><div class="actions"><button id="updateCall">Save Changes</button><button id="deleteCall" class="danger">Delete</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
+ openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select><div class="row"><div><label>Date</label><input id="eDate" type="date" value="'+esc(c.date)+'"></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div id="eFriendlyDate" class="friendly-date"></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+brotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+brotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes)+'</textarea><div class="actions"><button id="updateCall">Save Changes</button><button id="deleteCall" class="danger">Delete</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
  $("cancelEdit").onclick=closeModal;
+ updateFriendlyCallDate("eDate","eTime","eFriendlyDate");
+ $("eDate").onchange=()=>updateFriendlyCallDate("eDate","eTime","eFriendlyDate");
+ $("eTime").onchange=()=>updateFriendlyCallDate("eDate","eTime","eFriendlyDate");
  $("deleteCall").onclick=()=>{if(confirm("Delete this shepherding call?")){db.calls=db.calls.filter(x=>x.id!==id);closeModal();persist()}};
  $("updateCall").onclick=()=>{
    const p=db.publishers.find(x=>x.id===$("ePub").value),b1=$("eB1").value,b2=$("eB2").value;
