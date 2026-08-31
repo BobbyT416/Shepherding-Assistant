@@ -83,6 +83,52 @@ input[type="date"]::-webkit-date-and-time-value{
 }
 .friendly-date-input{height:48px!important;min-height:48px!important}
 .friendly-date-input input{height:48px!important;min-height:48px!important;max-height:48px!important}
+
+/* V2.17 — branded header using the same word-free iPhone icon */
+header.app-header{
+  background:#182a4a;
+  color:white;
+  padding:16px 22px;
+}
+.header-brand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  max-width:1100px;
+  margin:0 auto;
+}
+.header-brand img{
+  width:68px;
+  height:68px;
+  object-fit:contain;
+  border-radius:17px;
+  flex:0 0 68px;
+}
+.header-brand-text{
+  min-width:0;
+  text-align:left;
+}
+header.app-header h1{
+  margin:0 0 5px;
+  font-size:29px;
+  line-height:1.1;
+  font-weight:800;
+}
+#headerGroup{
+  font-size:17px;
+  line-height:1.25;
+  color:#fff;
+  opacity:.96;
+}
+@media(max-width:700px){
+  header.app-header{padding:14px 18px}
+  .header-brand{gap:12px}
+  .header-brand img{
+    width:62px;height:62px;flex-basis:62px;border-radius:15px
+  }
+  header.app-header h1{font-size:26px}
+  #headerGroup{font-size:16px}
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -93,7 +139,15 @@ input[type="date"]::-webkit-date-and-time-value{
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 </head>
 <body>
-<header><h1>Shepherding Assistant</h1><div id="headerGroup">One Field Service Group • Local Only</div></header>
+<header class="app-header">
+  <div class="header-brand">
+    <img src="shepherding-app-icon.png" alt="Shepherding Assistant">
+    <div class="header-brand-text">
+      <h1>Shepherding Assistant</h1>
+      <div id="headerGroup">One Field Service Group • Local Only</div>
+    </div>
+  </div>
+</header>
 <nav>
 <button data-page="dashboard">Dashboard</button><button data-page="publishers">Publishers</button>
 <button data-page="shepherding">Shepherding</button><button data-page="calendar">Calendar</button>
@@ -378,5 +432,5 @@ document.addEventListener("click",function(e){
   }
 },true);
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.16</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.17</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
