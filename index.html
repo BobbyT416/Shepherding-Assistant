@@ -801,8 +801,10 @@ textarea.publisher-address-field{
 <h2>Settings & Local Data</h2><div class="card"><b>Storage status:</b> <span id="storageStatus">Local data active</span></div>
 <div class="card"><label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
 <p class="small">A publisher is flagged when the last completed shepherding call is older than this interval.</p></div>
-<div class="card"><h3>Transfer / Backup</h3><p>Nothing is uploaded. Export creates a backup file on this device. Import restores that file into this copy.</p>
-<div class="actions"><button id="exportData">Export Group Data</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div></div>
+<div class="card"><h3>Transfer / Backup</h3>
+<p>Nothing is uploaded automatically. Export creates a backup file that you can save or share using the options available on your device.</p>
+<div class="actions"><button id="exportData">Export Group Data</button><button id="shareBackup" class="secondary">Save / Share Backup</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
+<p class="small">On iPhone/iPad, the Files picker can access iCloud Drive, OneDrive, Google Drive, Dropbox, and other installed storage providers. On Windows, the file picker can access your OneDrive folder and other available locations.</p></div>
 <div class="card"><h3>Local Storage</h3><p class="small">This app uses one fixed local data key. Keep using the same app folder/file when updating the program so the browser can retain its local data. The export backup is the safe way to move data to another elder's device.</p>
 <button id="clearData" class="danger">Erase This Device's Group Data</button></div>
 </section>
@@ -1316,9 +1318,43 @@ $("addElder").onclick=()=>{const n=$("elderSelect").value;if(!n)return;db.group.
 $("calendarMonth").onchange=renderCalendar;$("prevMonth").onclick=()=>shiftCalendarMonth(-1);$("nextMonth").onclick=()=>shiftCalendarMonth(1);$("listViewBtn").onclick=()=>{calendarMode="list";renderCalendar()};$("monthViewBtn").onclick=()=>{calendarMode="calendar";renderCalendar()};
 $("reminderMonths").onchange=()=>{db.reminderMonths=Math.max(1,Number($("reminderMonths").value)||3);persist()};
 
+function backupFile(){
+ const name="Shepherding_Group_Backup_"+new Date().toISOString().slice(0,10)+".json";
+ const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
+ return {name,blob};
+}
 $("exportData").onclick=()=>{
- const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"}),a=document.createElement("a");
- a.href=URL.createObjectURL(blob);a.download="Shepherding_Group_Backup_"+new Date().toISOString().slice(0,10)+".json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ const x=backupFile(),a=document.createElement("a");
+ a.href=URL.createObjectURL(x.blob);a.download=x.name;a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+$("shareBackup").onclick=async()=>{
+ const x=backupFile();
+ try{
+   if(navigator.share && typeof File==="function"){
+     const file=new File([x.blob],x.name,{type:"application/json"});
+     if(!navigator.canShare || navigator.canShare({files:[file]})){
+       await navigator.share({title:"Shepherding Group Backup",text:"Shepherding Assistant group backup",files:[file]});
+       return;
+     }
+   }
+   if(window.showSaveFilePicker){
+     const handle=await window.showSaveFilePicker({
+       suggestedName:x.name,
+       types:[{description:"Shepherding Assistant backup",accept:{"application/json":[".json"]}}]
+     });
+     const writable=await handle.createWritable();await writable.write(x.blob);await writable.close();return;
+   }
+   const a=document.createElement("a");
+   a.href=URL.createObjectURL(x.blob);a.download=x.name;a.click();
+   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+   alert("Your browser downloaded the backup. Use the browser's Save/Share option to choose OneDrive, iCloud Drive, Google Drive, Dropbox, or another available location.");
+ }catch(err){
+   if(err && err.name==="AbortError") return;
+   const a=document.createElement("a");
+   a.href=URL.createObjectURL(x.blob);a.download=x.name;a.click();
+   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ }
 };
 $("importData").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{
@@ -1330,5 +1366,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.19</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.20</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
