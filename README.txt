@@ -1,16 +1,11 @@
-SHEPHERDING ASSISTANT V2.33.5
+SHEPHERDING ASSISTANT V2.33.6
 
-Fix for existing-address editing.
+Single-change build from V2.33.5.
 
-The prior build accidentally left a one-line input with the same fAddress ID
-as the textarea. The browser was therefore editing the one-line input.
+Added only:
+- Family Head checkbox to the publisher editor.
+- Existing Family Head state loads when editing.
+- Family Head state saves with the publisher.
 
-This build removes that duplicate and makes Address a single true multiline
-textarea in the Edit Publisher form. Add Publisher uses the same multiline
-textarea.
-
-- Four visible lines initially
-- Enter creates a new line
-- Vertical resize supported
-
-No data/storage, header, calendar, or other application behavior was changed.
+No address sharing, sorting, role changes, calendar changes, header changes,
+or other application logic were intentionally changed.
