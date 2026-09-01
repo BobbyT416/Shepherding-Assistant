@@ -1,16 +1,20 @@
-SHEPHERDING ASSISTANT V2.33.9
+SHEPHERDING ASSISTANT V2.34.0
 
-Address save/load correction.
+Publishers page visual redesign.
 
-Root cause:
-- Edit Publisher calculated initialAddress but did not place it into the
-  textarea. Opening an existing publisher could therefore show a blank
-  address and saving could overwrite the stored address.
+- Compact family-directory layout.
+- Last Name, First Name display.
+- Families grouped and sorted alphabetically.
+- People sorted alphabetically within each family.
+- Small status dots:
+  green = Up to date
+  red = Needs attention
+  yellow = Scheduled visit
+- Small status key near Add Publisher.
+- Compact publisher rows.
+- Family Head remains indicated.
+- History remains available on each row.
+- Publisher search field removed.
 
-Fix:
-- Existing address is now loaded into the textarea.
-- Address is saved directly from the textarea value.
-- Existing house/family address behavior is retained.
-- Email and phone are not copied.
-
-No calendar, header, sorting, role, or navigation changes were intentionally made.
+No publisher data model, address behavior, calendar, dashboard, or header
+logic was intentionally changed.
