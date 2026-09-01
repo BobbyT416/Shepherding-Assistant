@@ -1,15 +1,17 @@
-SHEPHERDING ASSISTANT V2.34.17
+SHEPHERDING ASSISTANT V2.34.18
 
-Based directly on V2.34.16.
+Based directly on V2.34.17.
 
-ADDRESS SAVE FIX:
-The publisher edit save routine now explicitly writes the address field to
-the publisher object before persistence. The family-head behavior is retained:
-a Family Head's saved address is copied to the other members of the same
-household. Non-family-head members continue to inherit the Family Head address.
+FIX:
+Independent publishers (publishers who are not tied to a household) can now
+save their own address.
 
-Also made persist() report an actual storage error instead of silently failing.
+Behavior:
+- Family Head: saves address and propagates it to household members.
+- Non-head member with a Family Head: continues to inherit the Family Head address.
+- Publisher with NO household/Family Head: saves the address entered in that
+  publisher's own record.
 
-No publisher data is modified by the build itself.
+No other publisher data or household logic is changed.
 
 Replace ONLY index.html.
