@@ -361,6 +361,34 @@ header.app-header h1{
     text-align:left!important;
   }
 }
+/* V2.31 — subtle calendar add control and cleaner Publishers page */
+.day-add{
+  display:inline!important;
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#6b7280!important;
+  font-size:16px!important;
+  font-weight:400!important;
+  line-height:1!important;
+  opacity:.65!important;
+}
+.day-add:hover,.day-add:focus,.day-add:active{
+  background:transparent!important;
+  color:#4b5563!important;
+  opacity:.9!important;
+}
+.publisher-count{margin:10px 0 12px;padding-left:2px}
+@media(max-width:700px){
+  .month-nav{grid-template-columns:88px minmax(0,1fr) 88px!important;gap:6px!important}
+  .month-nav button{font-size:13px!important;padding:9px 4px!important;white-space:nowrap}
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -398,7 +426,7 @@ header.app-header h1{
 
 <section id="publishers" class="page">
 <h2>Publishers</h2><button id="addPublisher">+ Add Publisher</button>
-<div class="card"><div class="row"><input id="publisherSearch" placeholder="Search publishers"><button id="clearPublisherSearch" class="secondary">Clear Search</button></div><p id="publisherCount" class="small"></p></div>
+<p id="publisherCount" class="small publisher-count"></p>
 <div class="card publishers-table-card"><table><thead><tr><th>Name</th><th>Role</th><th>Household</th><th>Last Shepherding</th><th>Status</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
 </section>
 
@@ -479,7 +507,6 @@ function status(p){
 }
 function show(page){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(page).classList.add("active")}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
- if(b.dataset.page==="publishers"){$("publisherSearch").value="";renderPublishers()}
  show(b.dataset.page)
 }));
 
@@ -498,10 +525,9 @@ function renderGroup(){
  document.querySelectorAll("[data-remove-elder]").forEach(b=>b.onclick=()=>{db.group.elders.splice(Number(b.dataset.removeElder),1);persist()});
 }
 function renderPublishers(){
- const q=($("publisherSearch").value||"").trim().toLowerCase();
- const a=db.publishers.filter(p=>!q||(p.name+" "+p.role+" "+p.house+" "+(p.phone||"")+" "+(p.email||"")).toLowerCase().includes(q));
- $("publisherCount").textContent=q ? ("Showing "+a.length+" of "+db.publishers.length+" publishers") : (db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group");
- $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'">'+esc(p.name)+'</button></td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last?formatDisplayDate(p.last):"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(""):'<tr><td colspan="6">'+(q?'No publishers match that search.':'No publishers yet.')+'</td></tr>';
+ const a=db.publishers;
+ $("publisherCount").textContent=db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group";
+ $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'">'+esc(p.name)+'</button></td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last?formatDisplayDate(p.last):"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(''):'<tr><td colspan="6">No publishers yet.</td></tr>';
  document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
  document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
 }
@@ -771,7 +797,7 @@ $("saveGroup").onclick=()=>{
  alert("Group information saved.");
 };
 $("addElder").onclick=()=>{const n=$("elderSelect").value;if(!n)return;db.group.elders=db.group.elders||[];if(!db.group.elders.includes(n)){db.group.elders.push(n);persist()}};
-$("publisherSearch").oninput=renderPublishers;$("clearPublisherSearch").onclick=()=>{$("publisherSearch").value="";renderPublishers()};
+
 $("calendarMonth").onchange=renderCalendar;$("prevMonth").onclick=()=>shiftCalendarMonth(-1);$("nextMonth").onclick=()=>shiftCalendarMonth(1);$("listViewBtn").onclick=()=>{calendarMode="list";renderCalendar()};$("monthViewBtn").onclick=()=>{calendarMode="calendar";renderCalendar()};
 $("reminderMonths").onchange=()=>{db.reminderMonths=Math.max(1,Number($("reminderMonths").value)||3);persist()};
 
@@ -789,5 +815,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.30</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.31</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>

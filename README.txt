@@ -1,4 +1,4 @@
-SHEPHERDING ASSISTANT V2.29
+SHEPHERDING ASSISTANT V2.31
 
 Changes:
 - Schedule a visit as "Publisher only" or "Whole family".
@@ -7,7 +7,7 @@ Changes:
 - Family names display on the dashboard, call lists, and calendar.
 - Calendar navigation and subtle + buttons retained.
 - Publisher editor does not automatically open the iPhone keyboard.
-- Version: 2.29.
+- Version: 2.31.
 
 DATA:
 The app continues to use the same local storage key. Export a backup before major updates.
