@@ -1,12 +1,16 @@
-SHEPHERDING ASSISTANT V2.33.8
+SHEPHERDING ASSISTANT V2.33.9
 
-Fix to V2.33.7.
+Address save/load correction.
 
-The Address field displayed correctly as a multiline textarea, but the
-publisher save path was not reliably reading the textarea value.
+Root cause:
+- Edit Publisher calculated initialAddress but did not place it into the
+  textarea. Opening an existing publisher could therefore show a blank
+  address and saving could overwrite the stored address.
 
-This build explicitly saves Address from fAddress.value in the publisher
-editor. Add Publisher also reads the textarea value.
+Fix:
+- Existing address is now loaded into the textarea.
+- Address is saved directly from the textarea value.
+- Existing house/family address behavior is retained.
+- Email and phone are not copied.
 
-No family sharing, calendar, header, sorting, role, or other application
-logic was intentionally changed.
+No calendar, header, sorting, role, or navigation changes were intentionally made.

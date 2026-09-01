@@ -844,7 +844,7 @@ function editPublisher(id){
  const head=familyHeadForHouse(p.house,p.id);
  const inherited=head && !p.familyHead;
  const initialAddress=inherited ? (head.address||"") : (p.address||"");
- openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP"></textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="cancel" class="secondary">Cancel</button></div>');
+ openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP">'+esc(initialAddress)+'</textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="cancel" class="secondary">Cancel</button></div>');
  const updateAddressState=()=>{
    const h=familyHeadForHouse($("fHouse").value,p.id);
    const inheritedNow=h&&!$("fFamilyHead").checked;
@@ -867,8 +867,8 @@ function editPublisher(id){
      if(otherHead){alert("This family already has a family head. Uncheck Family Head on the existing family head before assigning it here.");return}
    }
    p.name=name;p.role=$("fRole").value;p.house=house;p.familyHead=familyHead;
-syncFamilyAddressFromHead(p);p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
-p.address = $("fAddress") ? $("fAddress").value.trim() : "";
+p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
+p.address = $("fAddress").value.trim();
    p.address=familyHead ? $("fAddress").value.trim() : (familyHeadForHouse(house,p.id)?.address||"");
    if(oldHouse.toLocaleLowerCase()!==house.toLocaleLowerCase() && !familyHead && !p.address)p.address="";
    if(familyHead)syncFamilyAddress(house,p.address,p.id);
@@ -1001,5 +1001,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33.8</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33.9</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
