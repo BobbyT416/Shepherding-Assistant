@@ -1,8 +1,7 @@
-SHEPHERDING ASSISTANT V2.27
+SHEPHERDING ASSISTANT V2.28
 
 Changes:
-- Publisher record action buttons no longer cover the bottom of the Notes field; the action bar remains visible without obscuring form content.
-- Calendar days now show a small + in the upper-right corner instead of “+ Schedule a return visit” text.
-- Tapping the + schedules a return visit for that date.
-- Existing calendar call names remain clickable.
-- Version: 2.27.
+- Cleaned up the calendar month navigation so Previous, month, and Next stay separated and do not overlap on iPhone portrait.
+- Made the calendar + return-visit buttons smaller and lighter so they remain visible but subtle.
+- Preserved all existing calendar navigation and return-visit functionality.
+- Version: 2.28.
