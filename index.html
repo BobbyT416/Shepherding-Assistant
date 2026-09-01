@@ -804,7 +804,7 @@ textarea.publisher-address-field{
 <div class="card"><h3>Transfer / Backup</h3>
 <p>Nothing is uploaded automatically. Export creates a backup file that you can save or share using the options available on your device.</p>
 <div class="actions"><button id="exportData">Export Group Data</button><button id="shareBackup" class="secondary">Save / Share Backup</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
-<p class="small">On iPhone/iPad, the Files picker can access iCloud Drive, OneDrive, Google Drive, Dropbox, and other installed storage providers. On Windows, the file picker can access your OneDrive folder and other available locations.</p></div>
+<p class="small">On iPhone/iPad, choose <b>Save to Files</b>. If it opens to a phone folder, tap <b>Browse</b> to see Locations such as OneDrive, iCloud Drive, Google Drive, or Dropbox. On Windows, the file picker can access your OneDrive folder and other available locations.</p></div>
 <div class="card"><h3>Local Storage</h3><p class="small">This app uses one fixed local data key. Keep using the same app folder/file when updating the program so the browser can retain its local data. The export backup is the safe way to move data to another elder's device.</p>
 <button id="clearData" class="danger">Erase This Device's Group Data</button></div>
 </section>
@@ -1366,5 +1366,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.20</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.21</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
