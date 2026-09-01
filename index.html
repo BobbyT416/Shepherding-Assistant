@@ -126,6 +126,38 @@ body.modal-open{overflow:hidden!important;height:100%!important}
 .visit{display:block;width:100%;box-sizing:border-box;text-align:left;padding:6px 7px;margin:4px 0;border-radius:6px;background:#e8eef9;color:#17202a;font-size:12px;white-space:normal;overflow-wrap:normal;word-break:normal;hyphens:none;line-height:1.2}
 .visit:hover{background:#dce6f8}@media(max-width:700px){.day{min-height:82px;height:auto;padding:4px}.visit{font-size:11px;padding:5px}.calhead{font-size:11px}}
 
+/* V2.33 — family organization and family-head styling */
+.family-divider td{
+  background:#eef2f7!important;
+  color:#586474!important;
+  font-weight:700!important;
+  font-size:12px!important;
+  letter-spacing:.02em;
+  padding:7px 10px!important;
+  border-top:1px solid #d8dde5!important;
+  border-bottom:1px solid #d8dde5!important;
+}
+.family-head-badge{
+  display:inline-block;
+  margin-left:7px;
+  padding:2px 6px;
+  border-radius:999px;
+  background:#eef2f7;
+  color:#586474;
+  font-size:10px;
+  font-weight:700;
+  vertical-align:middle;
+  text-decoration:none;
+}
+.family-address-note{margin:5px 0 0;font-size:12px;color:#586474;font-weight:400}
+.family-head-row{display:flex;align-items:center;gap:9px;margin:10px 0 2px}
+.family-head-row input{width:auto;min-height:18px;margin:0}
+.family-head-row label{margin:0;font-size:14px;font-weight:700}
+@media(max-width:700px){
+  .family-divider td{display:block!important;width:100%!important;padding:8px 4px!important;margin-top:2px}
+  .family-head-badge{font-size:9px;margin-left:5px}
+}
+
 .app-footer{text-align:center;padding:24px 20px 30px;margin-top:20px;border-top:1px solid #d8dde5;color:#586474;font-size:13px}.app-footer b{font-size:15px;color:#17202a}.app-footer .copyright{margin-top:6px;font-size:12px}.friendly-date{margin:6px 0 12px;font-weight:600;color:#17202a}.friendly-date-input{position:relative;width:100%}.friendly-date-input input{color:transparent;-webkit-text-fill-color:transparent;caret-color:transparent}.friendly-date-input input::-webkit-datetime-edit{color:transparent}.friendly-date-input input::-webkit-calendar-picker-indicator{opacity:.65}.friendly-input-text{position:absolute;left:14px;right:42px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:16px;color:#17202a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 input[type="time"]{text-align:left}
 .dashboard-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 18px}
@@ -361,7 +393,7 @@ header.app-header h1{
     text-align:left!important;
   }
 }
-/* V2.31 — subtle calendar add control and cleaner Publishers page */
+/* V2.33 — family-aware publishers, family head, shared address, blank role */
 .day-add{
   display:inline!important;
   width:auto!important;
@@ -389,7 +421,7 @@ header.app-header h1{
   .month-nav{grid-template-columns:88px minmax(0,1fr) 88px!important;gap:6px!important}
   .month-nav button{font-size:13px!important;padding:9px 4px!important;white-space:nowrap}
 }
-</style>
+.month-nav{display:flex!important;align-items:center!important;gap:8px!important;width:100%!important;box-sizing:border-box!important;overflow:visible!important}.month-nav button{flex:0 0 104px!important;width:104px!important;min-width:104px!important;max-width:104px!important;box-sizing:border-box!important;white-space:nowrap!important}.month-nav input[type="month"]{flex:1 1 auto!important;width:0!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;text-align:center!important}@media(max-width:700px){.month-nav{gap:6px!important}.month-nav button{flex-basis:96px!important;width:96px!important;min-width:96px!important;max-width:96px!important;font-size:13px!important;padding:9px 2px!important}.month-nav input[type="month"]{font-size:16px!important}}</style>
 
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b5ed7">
@@ -481,8 +513,23 @@ let returnToDashboardAfterCallEdit=false;
 let db=loadData();
 
 function fresh(){return {version:2,group:{name:"",overseer:"",assistant:"",elders:[]},publishers:[],calls:[],reminderMonths:3}}
+function normalizePublisherRecord(p){
+ if(!p||typeof p!=="object")return p;
+ if(typeof p.house!=="string")p.house=p.house?String(p.house):"";
+ if(typeof p.address!=="string")p.address="";
+ p.familyHead=!!p.familyHead;
+ if(typeof p.role!=="string")p.role="";
+ return p;
+}
 function loadData(){
- try{const x=JSON.parse(localStorage.getItem(DATA_KEY));if(x&&x.version===2)return x}catch(e){}
+ try{
+   const x=JSON.parse(localStorage.getItem(DATA_KEY));
+   if(x&&x.version===2){
+     x.publishers=(x.publishers||[]).map(normalizePublisherRecord);
+     x.calls=(x.calls||[]).map(c=>{if(typeof c.wholeFamily!=="boolean")c.wholeFamily=false;return c});
+     return x;
+   }
+ }catch(e){}
  return fresh();
 }
 function persist(){localStorage.setItem(DATA_KEY,JSON.stringify(db));render()}
@@ -524,10 +571,44 @@ function renderGroup(){
  $("elderSelect").innerHTML='<option value="">— Select Elder —</option>'+elderChoices.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
  document.querySelectorAll("[data-remove-elder]").forEach(b=>b.onclick=()=>{db.group.elders.splice(Number(b.dataset.removeElder),1);persist()});
 }
+function publisherFamilyKey(p){
+ const h=(p&&p.house||"").trim();
+ return h ? h.toLocaleLowerCase() : "#"+(p&&p.name||"").trim().toLocaleLowerCase();
+}
+function publisherFamilyLabel(p){
+ const h=(p&&p.house||"").trim();
+ return h ? (h.replace(/\s+$/,"")) : "Household not specified";
+}
+function sortedPublishers(){
+ return [...db.publishers].sort((a,b)=>{
+   const ah=(a.house||"").trim(), bh=(b.house||"").trim();
+   const ag=ah.toLocaleLowerCase(), bg=bh.toLocaleLowerCase();
+   if(ah && !bh)return -1;
+   if(!ah && bh)return 1;
+   if(ag!==bg)return ag.localeCompare(bg,undefined,{sensitivity:"base"});
+   if(!!a.familyHead!==!!b.familyHead)return a.familyHead?-1:1;
+   return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});
+ });
+}
 function renderPublishers(){
- const a=db.publishers;
+ const a=sortedPublishers();
  $("publisherCount").textContent=db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group";
- $("publisherRows").innerHTML=a.length?a.map(p=>{const st=status(p);const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;return '<tr><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'">'+esc(p.name)+'</button></td><td>'+esc(p.role)+'</td><td>'+esc(p.house)+'</td><td>'+esc(p.last?formatDisplayDate(p.last):"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>'}).join(''):'<tr><td colspan="6">No publishers yet.</td></tr>';
+ if(!a.length){
+   $("publisherRows").innerHTML='<tr><td colspan="6">No publishers yet.</td></tr>';
+   return;
+ }
+ let rows="",lastGroup=null;
+ a.forEach(p=>{
+   const st=status(p),count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;
+   const group=publisherFamilyKey(p);
+   if(group!==lastGroup){
+     rows+='<tr class="family-divider"><td colspan="6">'+esc(publisherFamilyLabel(p))+'</td></tr>';
+     lastGroup=group;
+   }
+   const head=p.familyHead?'<span class="family-head-badge">Family Head</span>':'';
+   rows+='<tr><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'">'+esc(p.name)+'</button>'+head+'</td><td>'+esc(p.role||"")+'</td><td>'+esc(p.house||"")+'</td><td>'+esc(p.last?formatDisplayDate(p.last):"—")+'</td><td><span class="pill">'+st[1]+'</span></td><td><button class="secondary" data-history="'+esc(p.id)+'">Shepherding History'+(count?' ('+count+')':'')+'</button></td></tr>';
+ });
+ $("publisherRows").innerHTML=rows;
  document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
  document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
 }
@@ -680,38 +761,83 @@ function openScheduleCall(publisherId="",initialDate="",returnVisit=false){
    closeModal();persist();
  };
 }
+function familyHeadForHouse(house,excludeId=""){
+ const h=(house||"").trim().toLocaleLowerCase();
+ if(!h)return null;
+ return db.publishers.find(x=>x.id!==excludeId&&x.familyHead&&(x.house||"").trim().toLocaleLowerCase()===h)||null;
+}
+function syncFamilyAddress(house,address,excludeId=""){
+ const h=(house||"").trim().toLocaleLowerCase();
+ if(!h)return;
+ db.publishers.forEach(x=>{
+   if(x.id!==excludeId&&(x.house||"").trim().toLocaleLowerCase()===h)x.address=address||"";
+ });
+}
+function addressForHouse(house,excludeId=""){
+ const head=familyHeadForHouse(house,excludeId);
+ return head ? (head.address||"") : "";
+}
+function publisherRoleOptions(selected=""){
+ return '<option value=""'+(selected===""?' selected':'')+'>— Blank —</option><option value="Publisher"'+(selected==="Publisher"?' selected':'')+'>Publisher</option><option value="Auxiliary Pioneer"'+(selected==="Auxiliary Pioneer"?' selected':'')+'>Auxiliary Pioneer</option><option value="Regular Pioneer"'+(selected==="Regular Pioneer"?' selected':'')+'>Regular Pioneer</option><option value="Elder"'+(selected==="Elder"?' selected':'')+'>Elder</option><option value="Ministerial Servant"'+(selected==="Ministerial Servant"?' selected':'')+'>Ministerial Servant</option>';
+}
 function editPublisher(id){
- const p=db.publishers.find(x=>x.id===id);
- if(!p)return;
- openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole"><option>Publisher</option><option>Auxiliary Pioneer</option><option>Regular Pioneer</option><option>Elder</option><option>Ministerial Servant</option></select><label>Household</label><input id="fHouse" value="'+esc(p.house||"")+'"><label>Phone</label><input id="fPhone" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="cancel" class="secondary">Cancel</button></div>');
- $("fRole").value=p.role||"Publisher";
+ const p=db.publishers.find(x=>x.id===id);if(!p)return;
+ normalizePublisherRecord(p);
+ const head=familyHeadForHouse(p.house,p.id);
+ const inherited=head && !p.familyHead;
+ const initialAddress=inherited ? (head.address||"") : (p.address||"");
+ openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div><label>Address</label><input id="fAddress" autocomplete="street-address" value="'+esc(initialAddress)+'"'+(inherited?' readonly':'')+'>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="cancel" class="secondary">Cancel</button></div>');
+ const updateAddressState=()=>{
+   const h=familyHeadForHouse($("fHouse").value,p.id);
+   const inheritedNow=h&&!$("fFamilyHead").checked;
+   if(inheritedNow){$("fAddress").value=h.address||"";$("fAddress").readOnly=true;}
+   else{$("fAddress").readOnly=false;if($("fFamilyHead").checked && !$("fAddress").value)$("fAddress").value=p.address||"";}
+ };
+ $("fHouse").oninput=updateAddressState;
+ $("fFamilyHead").onchange=updateAddressState;
  $("cancel").onclick=closeModal;
  $("schedulePublisherCall").onclick=()=>{closeModal();openScheduleCall(p.id)};
  $("savePub").onclick=()=>{
-   const name=$("fName").value.trim();
-   if(!name){alert("Enter a name.");return}
-   p.name=name;
-   p.role=$("fRole").value;
-   p.house=$("fHouse").value;
-   p.phone=$("fPhone").value;
-   p.email=$("fEmail").value;
-   p.last=normalizePublisherDate($("fLast").value);
-   if($("fLast").value.trim()&&!p.last){alert("Please enter the date as MM/DD/YYYY.");return}
-   p.notes=$("fNotes").value;
-   closeModal();
-   persist();
+   const name=$("fName").value.trim();if(!name){alert("Enter a name.");return}
+   const oldHouse=(p.house||"").trim();
+   const house=$("fHouse").value.trim();
+   const familyHead=$("fFamilyHead").checked;
+   const last=normalizePublisherDate($("fLast").value);
+   if($("fLast").value.trim()&&!last){alert("Please enter the date as MM/DD/YYYY.");return}
+   if(familyHead){
+     const otherHead=familyHeadForHouse(house,p.id);
+     if(otherHead){alert("This family already has a family head. Uncheck Family Head on the existing family head before assigning it here.");return}
+   }
+   p.name=name;p.role=$("fRole").value;p.house=house;p.familyHead=familyHead;p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
+   p.address=familyHead ? $("fAddress").value.trim() : (familyHeadForHouse(house,p.id)?.address||"");
+   if(oldHouse.toLocaleLowerCase()!==house.toLocaleLowerCase() && !familyHead && !p.address)p.address="";
+   if(familyHead)syncFamilyAddress(house,p.address,p.id);
+   closeModal();persist();
  };
 }
 $("addPublisher").onclick=()=>{
- openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName"><label>Role</label><select id="fRole"><option>Publisher</option><option>Auxiliary Pioneer</option><option>Regular Pioneer</option><option>Elder</option><option>Ministerial Servant</option></select><label>Household</label><input id="fHouse"><label>Phone</label><input id="fPhone"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
+ openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName" autocomplete="off"><label>Role</label><select id="fRole">'+publisherRoleOptions("")+'</select><label>Household</label><input id="fHouse" autocomplete="off"><div class="family-head-row"><input id="fFamilyHead" type="checkbox"><label for="fFamilyHead">Family Head</label></div><label>Address</label><input id="fAddress" autocomplete="street-address"><p id="familyAddressNote" class="family-address-note" style="display:none">Address will be populated from the family head.</p><label>Phone</label><input id="fPhone" type="tel" autocomplete="tel"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
+ $("fHouse").oninput=()=>{
+   const h=familyHeadForHouse($("fHouse").value);
+   const isHead=$("fFamilyHead").checked;
+   if(h&&!isHead){$("fAddress").value=h.address||"";$("fAddress").readOnly=true;$("familyAddressNote").style.display="block"}
+   else{$("fAddress").readOnly=false;$("familyAddressNote").style.display="none"}
+ };
+ $("fFamilyHead").onchange=()=>$("fHouse").dispatchEvent(new Event("input"));
+ $("fName").focus();
  $("cancel").onclick=closeModal;
  $("savePub").onclick=()=>{
-   const name=$("fName").value.trim();
-   if(!name){alert("Enter a name.");return}
+   const name=$("fName").value.trim();if(!name){alert("Enter a name.");return}
+   const house=$("fHouse").value.trim(),familyHead=$("fFamilyHead").checked;
    const last=normalizePublisherDate($("fLast").value);
    if($("fLast").value.trim()&&!last){alert("Please enter the date as MM/DD/YYYY.");return}
-   db.publishers.push({id:uid(),name,role:$("fRole").value,house:$("fHouse").value,phone:$("fPhone").value,email:$("fEmail").value,last,notes:$("fNotes").value});
-   closeModal();persist()
+   if(familyHead&&familyHeadForHouse(house)){alert("This family already has a family head.");return}
+   const head=familyHeadForHouse(house);
+   const address=familyHead?$("fAddress").value.trim():(head?head.address||"":"");
+   const p={id:uid(),name,role:$("fRole").value,house,familyHead,address,phone:$("fPhone").value,email:$("fEmail").value,last,notes:$("fNotes").value};
+   db.publishers.push(p);
+   if(familyHead)syncFamilyAddress(house,address,p.id);
+   closeModal();persist();
  };
 };
 $("scheduleCall").onclick=()=>openScheduleCall();
@@ -815,5 +941,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.31</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
