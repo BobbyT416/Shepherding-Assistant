@@ -644,7 +644,6 @@ function editPublisher(id){
  $("fRole").value=p.role||"Publisher";
  $("cancel").onclick=closeModal;
  $("schedulePublisherCall").onclick=()=>{closeModal();openScheduleCall(p.id)};
- $("fName").focus();
  $("savePub").onclick=()=>{
    const name=$("fName").value.trim();
    if(!name){alert("Enter a name.");return}
@@ -663,7 +662,6 @@ function editPublisher(id){
 $("addPublisher").onclick=()=>{
  openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName"><label>Role</label><select id="fRole"><option>Publisher</option><option>Auxiliary Pioneer</option><option>Regular Pioneer</option><option>Elder</option><option>Ministerial Servant</option></select><label>Household</label><input id="fHouse"><label>Phone</label><input id="fPhone"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
  $("cancel").onclick=closeModal;
- $("fName").focus();
  $("savePub").onclick=()=>{
    const name=$("fName").value.trim();
    if(!name){alert("Enter a name.");return}
@@ -746,5 +744,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.24</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.25</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
