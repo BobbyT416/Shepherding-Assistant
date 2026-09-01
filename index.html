@@ -660,6 +660,57 @@ textarea.publisher-address-field{
 .publisher-status-key-column{
   transform:translateY(-1px);
 }
+
+/* V2.34.7 — true two-column Publishers header */
+.publisher-header-layout{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  width:100%;
+  margin:0 0 12px;
+  gap:16px;
+}
+.publisher-header-left{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  min-width:0;
+}
+.publisher-header-left h2{
+  margin:0 0 12px;
+}
+.publisher-header-left #addPublisher{
+  margin:0;
+}
+.publisher-header-layout .publisher-status-key-column{
+  width:auto;
+  min-width:145px;
+  margin:0;
+  padding-top:2px;
+  display:flex;
+  justify-content:flex-end;
+  align-items:flex-start;
+}
+.publisher-header-layout .publisher-status-key{
+  margin:0;
+  width:max-content;
+  font-size:.78rem;
+  line-height:1.1;
+  gap:5px;
+}
+@media(max-width:700px){
+  .publisher-header-layout{
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .publisher-header-layout .publisher-status-key-column{
+    min-width:140px;
+    padding-top:1px;
+  }
+  .publisher-header-layout .publisher-status-key{
+    font-size:.76rem;
+  }
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -696,12 +747,19 @@ textarea.publisher-address-field{
 </section>
 
 <section id="publishers" class="page">
-<h2>Publishers</h2><button id="addPublisher">+ Add Publisher</button>
-<div class="publisher-status-key-column"><div class="publisher-status-key" aria-label="Publisher status key">
-  <span><i class="publisher-key-dot current"></i>Up to date</span>
-  <span><i class="publisher-key-dot attention"></i>Needs attention</span>
-  <span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
-</div></div>
+<div class="publisher-header-layout">
+  <div class="publisher-header-left">
+    <h2>Publishers</h2>
+    <button id="addPublisher">+ Add Publisher</button>
+  </div>
+  <div class="publisher-status-key-column">
+    <div class="publisher-status-key" aria-label="Publisher status key">
+      <span><i class="publisher-key-dot current"></i>Up to date</span>
+      <span><i class="publisher-key-dot attention"></i>Needs attention</span>
+      <span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
+    </div>
+  </div>
+</div>
 <p id="publisherCount" class="small publisher-count"></p>
 <div class="card publishers-table-card"><table class="publisher-directory-table"><thead><tr><th>Publisher</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
 </section>
@@ -1213,5 +1271,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.6</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.7</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
