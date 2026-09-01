@@ -1,21 +1,18 @@
-SHEPHERDING ASSISTANT V2.34.14
+SHEPHERDING ASSISTANT V2.34.15
 
-Based directly on the known-good V2.34.11.
+Based directly on the known-good V2.34.14.
 
-IMPORTANT FIX:
-V2.34.12/13 accidentally damaged the renderPublishers() function, which
-caused the Publishers page to render blank even though the publisher data
-remained intact.
+NEW:
+- Added "Inactive" to the publisher Role dropdown.
+- Inactive publishers remain in the database with all existing information/history.
+- Active publishers remain in one clean Last Name, First Name alphabetical list.
+- Inactive publishers are sorted alphabetically and moved to the bottom under a
+  small "Inactive Publishers" heading.
+- Family Head designation remains unchanged.
+- Household assignments and address inheritance are untouched.
+- History buttons and publisher editing remain available for inactive publishers.
+- Inactive entries use a subtle gray status dot.
 
-V2.34.14 restores the COMPLETE known-good publisher renderer and changes
-ONLY the sort:
-- All publishers are sorted by actual stored/display name: Last Name,
-  then First Name.
-- Family Head status is only a badge; it does not affect sorting.
-- Household/family data is untouched.
-- Status dots, clickable names, and History remain.
-- Inactive publishers are NOT implemented yet. When added, they will be
-  placed in a separate section at the bottom with an "Inactive Publishers"
-  heading.
+No data migration or publisher records are changed by the build.
 
 Replace ONLY index.html.

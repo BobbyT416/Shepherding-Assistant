@@ -463,7 +463,7 @@ textarea.publisher-address-field{
 .publisher-directory-row{height:38px}
 .publisher-directory-row .publisher-name-button{display:inline-flex;align-items:center;gap:8px;width:auto;background:none;border:0;padding:2px 0;margin:0;font:inherit;font-weight:600;cursor:pointer;text-align:left}
 .publisher-status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 8px}
-.publisher-status-dot.current{background:#2e9b4f}.publisher-status-dot.attention{background:#c83b3b}.publisher-status-dot.scheduled{background:#d8aa27}
+.publisher-status-dot.current{background:#2e9b4f}.publisher-status-dot.attention{background:#c83b3b}.publisher-status-dot.scheduled{background:#d8aa27}.publisher-status-dot.inactive{background:#9aa0a6}.inactive-section-heading td{padding:10px 8px 6px!important;font-size:12px;font-weight:700;letter-spacing:.03em;color:#667085;background:transparent;border-top:1px solid #d9dde3}.inactive-publisher-row{opacity:.82}
 .publisher-history-cell{width:1%;white-space:nowrap}.publisher-history-cell button{font-size:11px;padding:4px 7px;margin:0}
 .publisher-directory-table .family-divider td{padding:8px 9px 5px!important}
 @media(max-width:700px){.publisher-directory-table th,.publisher-directory-table td{padding-left:6px;padding-right:6px}.publisher-directory-row{height:35px}.publisher-directory-row .publisher-name-button{font-size:14px}.publisher-history-cell button{font-size:10px;padding:3px 6px}}
@@ -918,27 +918,34 @@ function sortedPublishers(){
  });
 }
 function renderPublishers(){
- const a=[...db.publishers].sort((x,y)=>{
+ const sorted=[...db.publishers].sort((x,y)=>{
    const xp=publisherSortParts(x), yp=publisherSortParts(y);
    const l=xp.last.localeCompare(yp.last,undefined,{sensitivity:"base"});
    return l!==0?l:xp.first.localeCompare(yp.first,undefined,{sensitivity:"base"});
  });
+ const active=sorted.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
+ const inactive=sorted.filter(p=>(p.role||"").trim().toLowerCase()==="inactive");
  $("publisherCount").textContent=db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group";
- if(!a.length){$("publisherRows").innerHTML='<tr><td colspan="2">No publishers yet.</td></tr>';return;}
+ if(!sorted.length){$("publisherRows").innerHTML='<tr><td colspan="2">No publishers yet.</td></tr>';return;}
  let rows="";
- a.forEach(p=>{
-   const st=status(p),count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;
-   const hasScheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
-   let dotClass="current",dotTitle="Up to date";
-   if(hasScheduled){dotClass="scheduled";dotTitle="Scheduled visit";}
-   else if(st[0]==="over"){dotClass="attention";dotTitle="Needs attention";}
-   const parts=String(p.name||"").trim().split(/\s+/);
-   const first=p.firstName||parts.slice(0,-1).join(" ");
-   const last=p.lastName||parts[parts.length-1]||"";
-   const display=(last&&first)?last+", "+first:(p.name||"");
-   const head=p.familyHead?'<span class="family-head-badge">Family Head</span>':"";
-   rows+='<tr class="publisher-directory-row"><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(display)+'</button>'+head+'</td><td class="publisher-history-cell"><button class="secondary" data-history="'+esc(p.id)+'">History'+(count?' ('+count+')':'')+'</button></td></tr>';
- });
+ const addRows=(list,isInactive)=>{
+   list.forEach(p=>{
+     const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;
+     const hasScheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
+     let dotClass="current",dotTitle="Up to date";
+     if(isInactive){dotClass="inactive";dotTitle="Inactive";}
+     else if(hasScheduled){dotClass="scheduled";dotTitle="Scheduled visit";}
+     else if(status(p)[0]==="over"){dotClass="attention";dotTitle="Needs attention";}
+     const display=publisherDisplayName(p);
+     const head=p.familyHead?'<span class="family-head-badge">Family Head</span>':"";
+     rows+='<tr class="publisher-directory-row'+(isInactive?' inactive-publisher-row':'')+'"><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(display)+'</button>'+head+'</td><td class="publisher-history-cell"><button class="secondary" data-history="'+esc(p.id)+'">History'+(count?' ('+count+')':'')+'</button></td></tr>';
+   });
+ };
+ addRows(active,false);
+ if(inactive.length){
+   rows+='<tr class="inactive-section-heading"><td colspan="2">Inactive Publishers</td></tr>';
+   addRows(inactive,true);
+ }
  $("publisherRows").innerHTML=rows;
  document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
  document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
@@ -1136,7 +1143,7 @@ function addressForHouse(house,excludeId=""){
  return head ? (head.address||"") : "";
 }
 function publisherRoleOptions(selected=""){
- return '<option value=""'+(selected===""?' selected':'')+'>— Blank —</option><option value="Publisher"'+(selected==="Publisher"?' selected':'')+'>Publisher</option><option value="Auxiliary Pioneer"'+(selected==="Auxiliary Pioneer"?' selected':'')+'>Auxiliary Pioneer</option><option value="Regular Pioneer"'+(selected==="Regular Pioneer"?' selected':'')+'>Regular Pioneer</option><option value="Elder"'+(selected==="Elder"?' selected':'')+'>Elder</option><option value="Ministerial Servant"'+(selected==="Ministerial Servant"?' selected':'')+'>Ministerial Servant</option>';
+ return '<option value=""'+(selected===""?' selected':'')+'>— Blank —</option><option value="Publisher"'+(selected==="Publisher"?' selected':'')+'>Publisher</option><option value="Auxiliary Pioneer"'+(selected==="Auxiliary Pioneer"?' selected':'')+'>Auxiliary Pioneer</option><option value="Regular Pioneer"'+(selected==="Regular Pioneer"?' selected':'')+'>Regular Pioneer</option><option value="Inactive"'+(selected==="Inactive"?' selected':'')+'>Inactive</option><option value="Elder"'+(selected==="Elder"?' selected':'')+'>Elder</option><option value="Ministerial Servant"'+(selected==="Ministerial Servant"?' selected':'')+'>Ministerial Servant</option>';
 }
 function editPublisher(id){
  const p=db.publishers.find(x=>x.id===id);if(!p)return;
@@ -1301,5 +1308,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.14</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.15</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
