@@ -110,7 +110,7 @@ body.modal-open{overflow:hidden!important;height:100%!important}
   }
   .modal-dashboard{top:14px!important;right:58px!important;left:auto!important;bottom:auto!important}
 }
-.attention-link{background:transparent;color:#2457d6;padding:0;text-decoration:underline;font:inherit;font-weight:600}
+.attention-item{margin:0;padding:8px 0;line-height:1.35}.attention-link{background:transparent;color:#2457d6;padding:0;border:0;text-decoration:underline;font-family:inherit;font-size:1rem;font-weight:400;line-height:inherit;cursor:pointer}.attention-reason{font-size:1rem}
 .small{font-size:13px;color:#586474}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .month-nav{display:grid;grid-template-columns:minmax(82px,1fr) minmax(0,1.45fr) minmax(82px,1fr);gap:10px;align-items:center;margin-top:14px}
 .month-nav input{margin:0;min-width:0;width:100%;box-sizing:border-box;text-align:center}
@@ -711,7 +711,7 @@ textarea.publisher-address-field{
     font-size:.76rem;
   }
 }
-/* V2.34.8 — Dashboard Needs Attention: last-name-first alphabetical list and matching text size */
+/* V2.34.9 — Dashboard Needs Attention: clean last-name-first alphabetical list */
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -1025,25 +1025,36 @@ function renderCalendar(){
  document.querySelectorAll("#calendarContent [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call,true));
  document.querySelectorAll("#calendarContent [data-empty-date]").forEach(b=>b.onclick=()=>openScheduleCall("",b.dataset.emptyDate,true));
 }
+function publisherDisplayName(p){
+ const raw=String(p?.name||"").trim();
+ if(p?.lastName || p?.firstName){
+   const first=String(p.firstName||"").trim();
+   const last=String(p.lastName||"").trim();
+   if(last&&first)return last+", "+first;
+   return last||first||raw;
+ }
+ if(raw.includes(",")){
+   const parts=raw.split(",",2).map(x=>x.trim());
+   return parts[0] && parts[1] ? parts[0]+", "+parts[1] : raw;
+ }
+ const parts=raw.split(/\s+/).filter(Boolean);
+ if(parts.length<2)return raw;
+ return parts[parts.length-1]+", "+parts.slice(0,-1).join(" ");
+}
+function publisherSortParts(p){
+ const display=publisherDisplayName(p);
+ const parts=display.split(",",2);
+ return {last:(parts[0]||"").trim(),first:(parts[1]||"").trim()};
+}
 function renderDashboard(){
  const s=db.publishers.map(status);
  $("stats").className="dashboard-stats";$("stats").innerHTML='<div class="stat-card"><div class="stat">'+db.publishers.length+'</div><div class="stat-label">Publishers</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="over").length+'</div><div class="stat-label">Overdue</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="soon").length+'</div><div class="stat-label">Due Soon</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="ok").length+'</div><div class="stat-label">Up to Date</div></div>';
  const attention=db.publishers.filter(p=>status(p)[0]!=="ok").sort((a,b)=>{
-   const nameParts=p=>{
-     const parts=String(p.name||"").trim().split(/\s+/);
-     const first=p.firstName||parts.slice(0,-1).join(" ");
-     const last=p.lastName||parts[parts.length-1]||"";
-     return {first,last,display:(last&&first)?last+", "+first:(p.name||"")};
-   };
-   const aa=nameParts(a),bb=nameParts(b);
+   const aa=publisherSortParts(a),bb=publisherSortParts(b);
    return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
  });
  $("attention").innerHTML=attention.map(p=>{
-   const parts=String(p.name||"").trim().split(/\s+/);
-   const first=p.firstName||parts.slice(0,-1).join(" ");
-   const last=p.lastName||parts[parts.length-1]||"";
-   const display=(last&&first)?last+", "+first:(p.name||"");
-   return '<p><button class="attention-link" data-attention-publisher="'+esc(p.id)+'">'+esc(display)+'</button> — '+status(p)[1]+'</p>';
+   return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'">'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>';
  }).join("")||"None.";
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.attentionPublisher));
 }
