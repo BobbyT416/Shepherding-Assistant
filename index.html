@@ -584,6 +584,38 @@ textarea.publisher-address-field{
   }
 }
 
+
+/* V2.34.3 status key */
+.publisher-status-key{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:9px;
+  margin-left:auto;
+  font-size:.70rem;
+  opacity:.78;
+  flex-wrap:wrap;
+}
+.publisher-status-key span{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  white-space:nowrap;
+}
+.publisher-key-dot{
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  flex:0 0 7px;
+}
+.publisher-key-dot.current{background:#2e9b4f}
+.publisher-key-dot.attention{background:#c83b3b}
+.publisher-key-dot.scheduled{background:#d8aa27}
+@media(max-width:700px){
+  .publisher-status-key{gap:6px;font-size:.63rem}
+  .publisher-key-dot{width:6px;height:6px;flex-basis:6px}
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -621,6 +653,11 @@ textarea.publisher-address-field{
 
 <section id="publishers" class="page">
 <h2>Publishers</h2><button id="addPublisher">+ Add Publisher</button>
+<div class="publisher-status-key" aria-label="Publisher status key">
+  <span><i class="publisher-key-dot current"></i>Up to date</span>
+  <span><i class="publisher-key-dot attention"></i>Needs attention</span>
+  <span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
+</div>
 <p id="publisherCount" class="small publisher-count"></p>
 <div class="card publishers-table-card"><table class="publisher-directory-table"><thead><tr><th>Publisher</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
 </section>
@@ -1132,5 +1169,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.2</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.3</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>

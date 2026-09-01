@@ -1,6 +1,17 @@
-SHEPHERDING ASSISTANT V2.34.2
+SHEPHERDING ASSISTANT V2.34.3
 
-Replace ONLY the existing index.html in the GitHub Pages repository with this index.html.
-Do not delete or replace any other files or local browser data.
+SAFE BUILD — STATUS KEY ONLY
 
-This version is the publisher-directory layout repair. It does not change the publisher data model or storage logic.
+Based directly on the working V2.34.2.
+
+Change:
+- Adds the small color-coded status key beside the Add Publisher control.
+
+Green = Up to date
+Red = Needs attention
+Yellow = Scheduled
+
+No publisher data, database/storage logic, publisher renderer, calendar,
+dashboard, address handling, or role logic was changed.
+
+Replace ONLY index.html in the existing GitHub Pages repository.
