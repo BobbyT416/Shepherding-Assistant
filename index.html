@@ -456,30 +456,17 @@ textarea.publisher-address-field{
 .family-head-option{display:flex;align-items:center;gap:8px;margin:8px 0 12px;font-weight:600}
 .family-head-option input{width:auto}
 
-/* V2.34.0 publisher directory */
-.publisher-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 0 10px}
-.publisher-key{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;font-size:.72rem;opacity:.78}
-.publisher-key span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 8px}
-.status-dot.current{background:#2e9b4f}
-.status-dot.attention{background:#c83b3b}
-.status-dot.scheduled{background:#d8aa27}
-.publisher-directory{width:100%}
-.publisher-family{margin:0 0 10px}
-.publisher-family-name{font-weight:700;font-size:.92rem;padding:7px 9px 4px}
-.publisher-row{display:flex;align-items:center;min-height:36px;padding:5px 7px;border-top:1px solid rgba(127,127,127,.18);gap:8px;cursor:pointer}
-.publisher-row:active{opacity:.72}
-.publisher-person{font-weight:600;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.publisher-role{font-size:.78rem;opacity:.65;white-space:nowrap}
-.publisher-history-btn{font-size:.72rem;padding:4px 7px;margin:0;white-space:nowrap}
-.add-publisher-btn{padding:7px 10px;font-size:.82rem}
-@media(max-width:650px){
-  .publisher-toolbar{align-items:flex-start}
-  .publisher-key{gap:6px;font-size:.66rem}
-  .publisher-role{display:none}
-  .publisher-history-btn{padding:3px 6px;font-size:.68rem}
-  .publisher-row{min-height:34px}
-}
+/* V2.34.1 publisher directory */
+.publisher-directory-table{width:100%;border-collapse:collapse}
+.publisher-directory-table th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:7px 9px;text-align:left}
+.publisher-directory-table td{padding:5px 9px;border-top:1px solid rgba(127,127,127,.18);vertical-align:middle}
+.publisher-directory-row{height:38px}
+.publisher-directory-row .publisher-name-button{display:inline-flex;align-items:center;gap:8px;width:auto;background:none;border:0;padding:2px 0;margin:0;font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.publisher-status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+.publisher-status-dot.current{background:#2e9b4f}.publisher-status-dot.attention{background:#c83b3b}.publisher-status-dot.scheduled{background:#d8aa27}
+.publisher-history-cell{width:1%;white-space:nowrap}.publisher-history-cell button{font-size:11px;padding:4px 7px;margin:0}
+.publisher-directory-table .family-divider td{padding:8px 9px 5px!important}
+@media(max-width:700px){.publisher-directory-table th,.publisher-directory-table td{padding-left:6px;padding-right:6px}.publisher-directory-row{height:35px}.publisher-directory-row .publisher-name-button{font-size:14px}.publisher-history-cell button{font-size:10px;padding:3px 6px}}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -518,7 +505,7 @@ textarea.publisher-address-field{
 <section id="publishers" class="page">
 <h2>Publishers</h2><button id="addPublisher">+ Add Publisher</button>
 <p id="publisherCount" class="small publisher-count"></p>
-<div class="card publishers-table-card"><table><thead><tr><th>Name</th><th>Role</th><th>Household</th><th>Last Shepherding</th><th>Status</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
+<div class="card publishers-table-card"><table class="publisher-directory-table"><thead><tr><th>Publisher</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
 </section>
 
 <section id="shepherding" class="page">
@@ -674,72 +661,28 @@ function sortedPublishers(){
  });
 }
 function renderPublishers(){
-  const root = $("publisherList") || $("publishersList") || $("publisher-list");
-  if(!root) return;
-
-  const list = (window.publishers || publishers || []).slice();
-
-  // Group by family/household, then alphabetically by last/first name.
-  const groups = {};
-  list.forEach(p=>{
-    const name = String(p.name || "").trim();
-    const parts = name.split(/\s+/);
-    const last = String(p.lastName || parts[parts.length-1] || "").trim();
-    const first = String(p.firstName || parts.slice(0,-1).join(" ") || "").trim();
-    const family = String(p.family || p.familyName || p.familyId || last || "Other").trim();
-    const key = family.toLowerCase();
-    if(!groups[key]) groups[key] = {name:family, people:[]};
-    groups[key].people.push({...p, _first:first, _last:last});
-  });
-
-  const groupList = Object.values(groups).sort((a,b)=>a.name.localeCompare(b.name));
-  const statusFor = p => {
-    if(p.shepherdingStatus === "scheduled" || p.status === "scheduled") return ["scheduled","Scheduled visit"];
-    if(p.shepherdingStatus === "attention" || p.status === "attention" || p.needsAttention) return ["attention","Needs attention"];
-    return ["current","Up to date"];
-  };
-
-  const esc = x => String(x ?? "").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const personLabel = p => {
-    const first = p._first, last = p._last;
-    return last && first ? `${esc(last)}, ${esc(first)}` : esc(p.name || `${last} ${first}`.trim());
-  };
-
-  let out = `
-    <div class="publisher-toolbar">
-      <button class="add-publisher-btn" onclick="addPublisher()">+ Add Publisher</button>
-      <div class="publisher-key" aria-label="Publisher status key">
-        <span><i class="status-dot current"></i>Up to date</span>
-        <span><i class="status-dot attention"></i>Needs attention</span>
-        <span><i class="status-dot scheduled"></i>Scheduled</span>
-      </div>
-    </div>
-    <div class="publisher-directory">`;
-
-  groupList.forEach(g=>{
-    g.people.sort((a,b)=>
-      (a._last||"").localeCompare(b._last||"") ||
-      (a._first||"").localeCompare(b._first||"")
-    );
-    out += `<div class="publisher-family"><div class="publisher-family-name">${esc(g.name)} Family</div>`;
-    g.people.forEach(p=>{
-      const [cls,title] = statusFor(p);
-      const id = p.id ?? p.publisherId ?? p._id;
-      const jsid = String(id ?? "").replace(/\\/g,"\\\\").replace(/'/g,"\\'");
-      out += `<div class="publisher-row" role="button" tabindex="0" title="${esc(title)}"
-        onclick="editPublisher('${jsid}')"
-        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();editPublisher('${jsid}')}">
-        <i class="status-dot ${cls}" title="${esc(title)}"></i>
-        <span class="publisher-person">${personLabel(p)}</span>
-        <span class="publisher-role">${esc(p.role || "")}${p.familyHead ? (p.role ? " · Family Head" : "Family Head") : ""}</span>
-        <button class="publisher-history-btn" onclick="event.stopPropagation();showHistory('${jsid}')">History</button>
-      </div>`;
-    });
-    out += `</div>`;
-  });
-
-  out += `</div>`;
-  root.innerHTML = out;
+ const a=sortedPublishers();
+ $("publisherCount").textContent=db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group";
+ if(!a.length){$("publisherRows").innerHTML='<tr><td colspan="2">No publishers yet.</td></tr>';return;}
+ let rows="",lastGroup=null;
+ a.forEach(p=>{
+   const st=status(p),count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;
+   const group=publisherFamilyKey(p);
+   if(group!==lastGroup){rows+='<tr class="family-divider"><td colspan="2">'+esc(publisherFamilyLabel(p))+'</td></tr>';lastGroup=group;}
+   const hasScheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
+   let dotClass="current",dotTitle="Up to date";
+   if(hasScheduled){dotClass="scheduled";dotTitle="Scheduled visit";}
+   else if(st[0]==="over"){dotClass="attention";dotTitle="Needs attention";}
+   const parts=String(p.name||"").trim().split(/\s+/);
+   const first=p.firstName||parts.slice(0,-1).join(" ");
+   const last=p.lastName||parts[parts.length-1]||"";
+   const display=(last&&first)?last+", "+first:(p.name||"");
+   const head=p.familyHead?'<span class="family-head-badge">Family Head</span>':"";
+   rows+='<tr class="publisher-directory-row"><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(display)+'</button>'+head+'</td><td class="publisher-history-cell"><button class="secondary" data-history="'+esc(p.id)+'">History'+(count?' ('+count+')':'')+'</button></td></tr>';
+ });
+ $("publisherRows").innerHTML=rows;
+ document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
+ document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
 }
 function updateFriendlyCallDate(dateId,timeId,outId){
  const date=$(dateId),out=$(outId);
@@ -1072,5 +1015,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.0</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.1</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>

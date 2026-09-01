@@ -1,20 +1,9 @@
-SHEPHERDING ASSISTANT V2.34.0
+SHEPHERDING ASSISTANT V2.34.1
 
-Publishers page visual redesign.
+Safe Publishers redesign based directly on V2.33.9, the last confirmed working build.
 
-- Compact family-directory layout.
-- Last Name, First Name display.
-- Families grouped and sorted alphabetically.
-- People sorted alphabetically within each family.
-- Small status dots:
-  green = Up to date
-  red = Needs attention
-  yellow = Scheduled visit
-- Small status key near Add Publisher.
-- Compact publisher rows.
-- Family Head remains indicated.
-- History remains available on each row.
-- Publisher search field removed.
-
-No publisher data model, address behavior, calendar, dashboard, or header
-logic was intentionally changed.
+V2.34.0 replaced the database-backed publisher renderer and caused the saved
+publisher data to appear missing. V2.34.1 restores that renderer and changes
+presentation only: compact rows, Last Name/First Name, family grouping, small
+green/red/yellow status dots, and History buttons. No storage/data model logic
+was changed.
