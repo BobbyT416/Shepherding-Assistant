@@ -1,8 +1,8 @@
-SHEPHERDING ASSISTANT V2.25
+SHEPHERDING ASSISTANT V2.27
 
 Changes:
-- Opening an existing publisher record no longer automatically focuses the Name field.
-- The iPhone keyboard stays closed when a publisher record is opened.
-- Tapping any editable field opens the keyboard normally.
-- Add Publisher behavior remains unchanged.
-- Version: 2.25.
+- Publisher record action buttons no longer cover the bottom of the Notes field; the action bar remains visible without obscuring form content.
+- Calendar days now show a small + in the upper-right corner instead of “+ Schedule a return visit” text.
+- Tapping the + schedules a return visit for that date.
+- Existing calendar call names remain clickable.
+- Version: 2.27.

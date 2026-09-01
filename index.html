@@ -40,7 +40,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
   overflow-x:hidden;
   overscroll-behavior:contain;
   touch-action:pan-y;
-  padding:24px 20px 78px;
+  padding:24px 20px 20px;
   margin:0;
   -webkit-overflow-scrolling:touch;
 }
@@ -86,9 +86,9 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 body.modal-open{overflow:hidden!important;height:100%!important}
 .modalbox .actions{
   position:sticky;
-  bottom:-1px;
+  bottom:0;
   z-index:1;
-  margin:18px -20px -78px;
+  margin:18px -20px 0;
   padding:12px 20px;
   background:rgba(255,255,255,.97);
   border-top:1px solid #e1e4e8;
@@ -99,7 +99,7 @@ body.modal-open{overflow:hidden!important;height:100%!important}
     width:calc(100vw - 16px);
     max-height:calc(100dvh - 16px);
     border-radius:16px;
-    padding:22px 16px 78px;
+    padding:22px 16px 20px;
   }
   .modalbox h2{font-size:27px;margin-right:48px;margin-bottom:16px}
   .modalbox .actions{
@@ -115,8 +115,10 @@ body.modal-open{overflow:hidden!important;height:100%!important}
 .month-nav{display:grid;grid-template-columns:auto minmax(120px,1fr) auto;gap:8px;align-items:center;margin-top:12px}
 .month-nav input{margin:0}
 @media(max-width:700px){.month-nav{grid-template-columns:auto minmax(110px,1fr) auto}.month-nav button{padding:9px 8px;font-size:12px}}
-.empty-day{display:block;width:100%;box-sizing:border-box;text-align:left;padding:5px 4px;margin-top:5px;border:0;background:transparent;color:#2457d6;font-size:10px;font-weight:700;line-height:1.15}
-.empty-day:hover{text-decoration:underline}
+.empty-day{display:none}
+.daytop{display:flex;align-items:flex-start;justify-content:space-between;gap:4px;min-height:18px}
+.day-add{border:0;background:transparent;color:#2457d6;font-size:18px;font-weight:700;line-height:16px;padding:0 2px;margin:-1px -1px 0 0;cursor:pointer}
+.day-add:hover{background:#eef2f7;border-radius:4px}
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid #d8dde5;border-radius:8px;overflow:hidden;margin-top:14px}
 .calhead{background:#eef2f7;font-weight:700;text-align:center;padding:9px;border-right:1px solid #d8dde5}
 .day{min-height:105px;height:auto;padding:7px;border-right:1px solid #d8dde5;border-top:1px solid #d8dde5;background:#fff}
@@ -577,8 +579,8 @@ function renderCalendar(){
      const ds=yr+"-"+String(mo).padStart(2,"0")+"-"+String(day).padStart(2,"0");
      const calls=db.calls.filter(c=>c.date===ds).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
      const actions=calls.map(c=>'<button class="visit" data-call="'+esc(c.id)+'" title="Open visit details">'+esc(c.name)+'</button>').join("");
-     const empty=!calls.length?'<button class="empty-day" data-empty-date="'+esc(ds)+'" title="Schedule a return visit">+ Schedule a return visit</button>':"";
-     cells+='<div class="day"><div class="daynum">'+day+'</div>'+actions+empty+'</div>';
+     const addReturn='<button class="day-add" data-empty-date="'+esc(ds)+'" title="Schedule a return visit" aria-label="Schedule a return visit">+</button>';
+     cells+='<div class="day"><div class="daytop"><div class="daynum">'+day+'</div>'+addReturn+'</div>'+actions+'</div>';
    }
    const used=prevDays+total, tail=(7-(used%7))%7;
    for(let i=0;i<tail;i++)cells+='<div class="day muted"></div>';
@@ -599,10 +601,15 @@ function render(){
 }
 
 function openModal(content){
+ // Never carry keyboard focus into a newly opened modal. On iPhone/Safari,
+ // explicitly blur the active field before and after rendering the modal.
+ if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
  document.body.classList.add("modal-open");
  $("modalBox").innerHTML='<button id="modalClose" type="button" class="modal-close" aria-label="Close">×</button>'+content+'<button id="modalDashboard" type="button" class="secondary modal-dashboard" onclick="closeModal();show("dashboard")">Dashboard</button>';
  $("modalClose").onclick=closeModal;
  $("modal").classList.add("open");
+ // Prevent iOS from restoring focus to the last field in the modal.
+ setTimeout(()=>{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); },0);
 }
 function closeModal(){
  $("modal").classList.remove("open");
@@ -744,5 +751,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.25</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.27</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
