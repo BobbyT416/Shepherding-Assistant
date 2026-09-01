@@ -853,7 +853,15 @@ function syncFamilyAddressFromHead(p){
   });
 }
 
-function persist(){localStorage.setItem(DATA_KEY,JSON.stringify(db));render()}
+function persist(){
+ try{
+   localStorage.setItem(DATA_KEY,JSON.stringify(db));
+   render();
+ }catch(e){
+   alert("Unable to save the publisher information on this device.");
+   throw e;
+ }
+}
 function $(id){return document.getElementById(id)}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function uid(){return (crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+"-"+Math.random()}
@@ -1176,17 +1184,19 @@ function editPublisher(id){
    }
    p.name=name;p.role=$("fRole").value;p.house=house;p.familyHead=familyHead;
 p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
-   const enteredAddress=$("fAddress").value.trim();
-   // The family head owns the saved family address. Other family members
-   // inherit that address and do not create a separate address record.
+   // Save the address directly to the publisher record first.
+   // For a Family Head, also copy the same address to the rest of the household.
+   // For other family members, the address remains inherited from the Family Head.
+   const enteredAddress=$("fAddress").value;
    if(familyHead){
-     p.address=enteredAddress;
+     p.address=enteredAddress.trim();
      syncFamilyAddress(house,p.address,p.id);
    }else{
      const currentHead=familyHeadForHouse(house,p.id);
-     p.address=currentHead ? (currentHead.address||"") : "";
+     p.address=currentHead ? String(currentHead.address||"") : "";
    }
-   closeModal();persist();
+   normalizePublisherRecord(p);
+   persist();closeModal();
  };
 }
 $("addPublisher").onclick=()=>{
@@ -1315,5 +1325,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.16</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.17</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
