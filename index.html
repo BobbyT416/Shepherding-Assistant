@@ -634,6 +634,32 @@ textarea.publisher-address-field{
 @media(max-width:700px){
   .publisher-status-key-column{width:128px;min-width:128px}
 }
+
+/* V2.34.6 publisher header */
+.publisher-status-key-column{
+  width:150px;
+  min-width:150px;
+  margin-left:auto;
+  margin-top:0;
+  display:flex;
+  justify-content:flex-end;
+  align-items:flex-start;
+}
+.publisher-status-key-column .publisher-status-key{
+  margin:0;
+  width:max-content;
+}
+@media(max-width:700px){
+  .publisher-status-key-column{
+    width:145px;
+    min-width:145px;
+  }
+}
+
+/* Compact, symmetrical Publishers header */
+.publisher-status-key-column{
+  transform:translateY(-1px);
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -1187,5 +1213,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.5</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.6</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
