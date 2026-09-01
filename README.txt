@@ -1,13 +1,12 @@
-SHEPHERDING ASSISTANT V2.33.7
+SHEPHERDING ASSISTANT V2.33.8
 
-Single-change build from V2.33.6.
+Fix to V2.33.7.
 
-Added:
-- When a publisher is marked Family Head and has an address, saving that
-  address shares ADDRESS ONLY with the other publishers assigned to the same
-  family.
-- Email addresses and phone numbers are never copied.
-- No calendar, header, sorting, role, or navigation changes.
+The Address field displayed correctly as a multiline textarea, but the
+publisher save path was not reliably reading the textarea value.
 
-Important: a publisher must already belong to the same family for the address
-to be shared. This build does not change family assignment.
+This build explicitly saves Address from fAddress.value in the publisher
+editor. Add Publisher also reads the textarea value.
+
+No family sharing, calendar, header, sorting, role, or other application
+logic was intentionally changed.
