@@ -820,6 +820,7 @@ function normalizePublisherRecord(p){
  if(!p||typeof p!=="object")return p;
  if(typeof p.house!=="string")p.house=p.house?String(p.house):"";
  if(typeof p.address!=="string")p.address="";
+ else p.address=p.address.trim();
  p.familyHead=!!p.familyHead;
  if(typeof p.role!=="string")p.role="";
  return p;
@@ -1175,10 +1176,16 @@ function editPublisher(id){
    }
    p.name=name;p.role=$("fRole").value;p.house=house;p.familyHead=familyHead;
 p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
-p.address = $("fAddress").value.trim();
-   p.address=familyHead ? $("fAddress").value.trim() : (familyHeadForHouse(house,p.id)?.address||"");
-   if(oldHouse.toLocaleLowerCase()!==house.toLocaleLowerCase() && !familyHead && !p.address)p.address="";
-   if(familyHead)syncFamilyAddress(house,p.address,p.id);
+   const enteredAddress=$("fAddress").value.trim();
+   // The family head owns the saved family address. Other family members
+   // inherit that address and do not create a separate address record.
+   if(familyHead){
+     p.address=enteredAddress;
+     syncFamilyAddress(house,p.address,p.id);
+   }else{
+     const currentHead=familyHeadForHouse(house,p.id);
+     p.address=currentHead ? (currentHead.address||"") : "";
+   }
    closeModal();persist();
  };
 }
@@ -1308,5 +1315,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.15</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.16</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>

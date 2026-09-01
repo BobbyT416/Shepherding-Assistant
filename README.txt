@@ -1,18 +1,20 @@
-SHEPHERDING ASSISTANT V2.34.15
+SHEPHERDING ASSISTANT V2.34.16
 
-Based directly on the known-good V2.34.14.
+Based directly on the known-good V2.34.15.
 
-NEW:
-- Added "Inactive" to the publisher Role dropdown.
-- Inactive publishers remain in the database with all existing information/history.
-- Active publishers remain in one clean Last Name, First Name alphabetical list.
-- Inactive publishers are sorted alphabetically and moved to the bottom under a
-  small "Inactive Publishers" heading.
-- Family Head designation remains unchanged.
-- Household assignments and address inheritance are untouched.
-- History buttons and publisher editing remain available for inactive publishers.
-- Inactive entries use a subtle gray status dot.
+FIX:
+Publisher addresses were not being reliably saved in the edit flow.
 
-No data migration or publisher records are changed by the build.
+The save logic is now explicit:
+- When editing a Family Head, the address field is saved to that publisher record.
+- That saved family-head address is immediately propagated to the other members
+  of the same household.
+- Non-family-head publishers continue to inherit the family-head address rather
+  than maintaining a separate address.
+- Existing phone, email, role, household, notes, date, and Family Head behavior
+  are untouched.
+- Loaded address values are normalized as strings.
+
+No publisher records are modified during the build itself.
 
 Replace ONLY index.html.
