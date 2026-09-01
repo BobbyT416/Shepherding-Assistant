@@ -112,12 +112,12 @@ body.modal-open{overflow:hidden!important;height:100%!important}
 }
 .attention-link{background:transparent;color:#2457d6;padding:0;text-decoration:underline;font-weight:700}
 .small{font-size:13px;color:#586474}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.month-nav{display:grid;grid-template-columns:auto minmax(120px,1fr) auto;gap:8px;align-items:center;margin-top:12px}
-.month-nav input{margin:0}
-@media(max-width:700px){.month-nav{grid-template-columns:auto minmax(110px,1fr) auto}.month-nav button{padding:9px 8px;font-size:12px}}
+.month-nav{display:grid;grid-template-columns:minmax(82px,1fr) minmax(0,1.45fr) minmax(82px,1fr);gap:10px;align-items:center;margin-top:14px}
+.month-nav input{margin:0;min-width:0;width:100%;box-sizing:border-box;text-align:center}
+@media(max-width:700px){.month-nav{grid-template-columns:minmax(76px,1fr) minmax(0,1.35fr) minmax(76px,1fr);gap:6px}.month-nav button{padding:9px 5px;font-size:12px}}
 .empty-day{display:none}
 .daytop{display:flex;align-items:flex-start;justify-content:space-between;gap:4px;min-height:18px}
-.day-add{border:0;background:transparent;color:#2457d6;font-size:18px;font-weight:700;line-height:16px;padding:0 2px;margin:-1px -1px 0 0;cursor:pointer}
+.visit-scope{margin:12px 0 2px}.scope-options{display:flex;gap:18px;flex-wrap:wrap}.scope-options label{font-weight:400;display:flex;align-items:center;gap:7px}.scope-options input{width:auto;margin:0}\n.day-add{opacity:.72;border:0;background:transparent;color:#2457d6;font-size:15px;font-weight:400;line-height:16px;padding:0 2px;margin:-1px -1px 0 0;cursor:pointer}
 .day-add:hover{background:#eef2f7;border-radius:4px}
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid #d8dde5;border-radius:8px;overflow:hidden;margin-top:14px}
 .calhead{background:#eef2f7;font-weight:700;text-align:center;padding:9px;border-right:1px solid #d8dde5}
@@ -544,7 +544,7 @@ function formatCallDateTime(c){
  const time=d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
  return day+", "+date+" at "+time;
 }
-function callButton(c){return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(c.name)+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+'</button>'}
+function callButton(c){return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+'</button>'}
 function renderCalls(){
  const a=[...db.calls].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
  $("callList").innerHTML=a.length?a.map(callButton).join(""):'No calls recorded.';
@@ -578,7 +578,7 @@ function renderCalendar(){
    for(let day=1;day<=total;day++){
      const ds=yr+"-"+String(mo).padStart(2,"0")+"-"+String(day).padStart(2,"0");
      const calls=db.calls.filter(c=>c.date===ds).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
-     const actions=calls.map(c=>'<button class="visit" data-call="'+esc(c.id)+'" title="Open visit details">'+esc(c.name)+'</button>').join("");
+     const actions=calls.map(c=>'<button class="visit" data-call="'+esc(c.id)+'" title="Open visit details">'+esc(callDisplayName(c))+'</button>').join("");
      const addReturn='<button class="day-add" data-empty-date="'+esc(ds)+'" title="Schedule a return visit" aria-label="Schedule a return visit">+</button>';
      cells+='<div class="day"><div class="daytop"><div class="daynum">'+day+'</div>'+addReturn+'</div>'+actions+'</div>';
    }
@@ -621,15 +621,27 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 function publisherFormDateValue(p){
  return p&&p.last?formatDisplayDate(p.last):"";
 }
+function familyDisplayName(p){
+ const h=(p&&p.house||"").trim();
+ if(!h)return p&&p.name ? p.name+" Family" : "Whole Family";
+ return /\bfamily\b$/i.test(h) ? h : h+" Family";
+}
+function callDisplayName(c){
+ if(!c.wholeFamily)return c.name||"";
+ const p=db.publishers.find(x=>x.id===c.publisherId);
+ return familyDisplayName(p);
+}
+function visitScopeOptions(selected){
+ return '<div class="visit-scope"><label>Visit With</label><div class="scope-options"><label><input type="radio" name="visitScope" value="publisher"'+(selected?'':' checked')+'> Publisher only</label><label><input type="radio" name="visitScope" value="family"'+(selected?' checked':'')+'> Whole family</label></div></div>';
+}
 function openScheduleCall(publisherId="",initialDate="",returnVisit=false){
  if(!db.publishers.length){alert("Add a publisher first.");return}
  const today=new Date().toISOString().slice(0,10);
  const date=initialDate||today;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
  const typeOpts='<option'+(returnVisit?'':' selected')+'>Home Visit</option><option>Kingdom Hall</option><option>Telephone</option><option>Other</option><option'+(returnVisit?' selected':'')+'>Return Visit</option>';
- openModal('<h2>'+ (returnVisit?'Schedule Return Visit':'Schedule Shepherding Call') +'</h2><label>Publisher</label><select id="cPub">'+pubOpts+'</select><div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="cDate" type="date" value="'+esc(date)+'"><span id="cDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+brotherOptions()+'</select></div><div><label>Brother 2</label><select id="cB2">'+brotherOptions()+'</select></div></div><label>Type</label><select id="cType">'+typeOpts+'</select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
+ openModal('<h2>'+ (returnVisit?'Schedule Return Visit':'Schedule Shepherding Call') +'</h2><label>Publisher</label><select id="cPub">'+pubOpts+'</select>'+visitScopeOptions(false)+'<div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="cDate" type="date" value="'+esc(date)+'"><span id="cDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+brotherOptions()+'</select></div><div><label>Brother 2</label><select id="cB2">'+brotherOptions()+'</select></div></div><label>Type</label><select id="cType">'+typeOpts+'</select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
  $("cancelCall").onclick=closeModal;
- $("cPub").focus();
  updateFriendlyCallDate("cDate","cTime","cDateDisplay");
  $("cDate").onchange=()=>updateFriendlyCallDate("cDate","cTime","cDateDisplay");
  $("cTime").onchange=()=>updateFriendlyCallDate("cDate","cTime","cDateDisplay");
@@ -637,11 +649,9 @@ function openScheduleCall(publisherId="",initialDate="",returnVisit=false){
    const p=db.publishers.find(x=>x.id===$("cPub").value);if(!p)return;
    const b1=$("cB1").value,b2=$("cB2").value;
    if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
-   db.calls.push({id:uid(),publisherId:p.id,name:p.name,date:$("cDate").value,time:$("cTime").value,brother1:b1,brother2:b2,type:$("cType").value,notes:$("cNotes").value,status:"Scheduled"});
-   const goHome=returnToDashboardAfterCallEdit;
-   returnToDashboardAfterCallEdit=false;
+   const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
+   db.calls.push({id:uid(),publisherId:p.id,name:p.name,date:$("cDate").value,time:$("cTime").value,brother1:b1,brother2:b2,type:$("cType").value,notes:$("cNotes").value,status:"Scheduled",wholeFamily});
    closeModal();persist();
-   if(goHome)show("dashboard");
  };
 }
 function editPublisher(id){
@@ -684,45 +694,73 @@ function showHistory(publisherId){
  const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
  let body=history.length?history.map(c=>{
    const brothers=[c.brother1,c.brother2].filter(Boolean).join(" & ")||"Not recorded";
-   return '<div class="card"><h3>'+formatCallDateTime(c)+'</h3><p><b>Brothers:</b> '+esc(brothers)+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+'</p><p><b>Notes:</b><br>'+esc(c.notes||"No notes recorded.")+'</p><button class="secondary" data-history-call="'+esc(c.id)+'">Open Visit Details</button></div>'
+   return '<div class="card"><h3>'+formatCallDateTime(c)+'</h3><p><b>Brothers:</b> '+esc(brothers)+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+'</p><p><b>Notes:</b><br>'+esc(c.notes||"No notes recorded.")+'</p><div class="actions"><button class="secondary" data-history-call="'+esc(c.id)+'">Open Visit Details</button><button class="danger" data-history-delete="'+esc(c.id)+'">Delete Visit</button></div></div>'
  }).join(""):'<div class="card"><p>No completed shepherding calls have been recorded for '+esc(p.name)+'.</p></div>';
  openModal('<h2>Shepherding History</h2><p><b>'+esc(p.name)+'</b></p>'+body+'<div class="actions"><button id="closeHistory" class="secondary">Close</button></div>');
  $("closeHistory").onclick=closeModal;
  document.querySelectorAll("[data-history-call]").forEach(b=>b.onclick=()=>{const id=b.dataset.historyCall;closeModal();editCall(id)});
+ document.querySelectorAll("[data-history-delete]").forEach(b=>b.onclick=()=>{
+   const id=b.dataset.historyDelete;
+   const c=db.calls.find(x=>x.id===id);
+   if(!c)return;
+   if(confirm("Delete this historical shepherding visit? This cannot be undone.")){
+     db.calls=db.calls.filter(x=>x.id!==id);
+     persist();
+     showHistory(publisherId);
+   }
+ });
 }
 function editCall(id,fromCalendar=false){
  returnToDashboardAfterCallEdit=!!fromCalendar;
  const c=db.calls.find(x=>x.id===id);if(!c)return;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
- openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select><div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+brotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+brotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes)+'</textarea><div class="actions"><button id="updateCall">Save Changes</button><button id="deleteCall" class="danger">Delete</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
+ openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select>'+visitScopeOptions(!!c.wholeFamily)+'<div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+brotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+brotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes||"")+'</textarea><div class="actions"><button id="updateCall">Save Changes</button><button id="cancelVisit" class="danger" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Cancel Visit</button><button id="deleteCall" class="danger" style="display:'+(c.status!=="Scheduled"?'inline-block':'none')+'">Delete Visit</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
  $("cancelEdit").onclick=()=>{
   closeModal();
   if(returnToDashboardAfterCallEdit){
     returnToDashboardAfterCallEdit=false;
     show("dashboard");
   }
-};
+ };
  updateFriendlyCallDate("eDate","eTime","eDateDisplay");
  $("eDate").onchange=()=>updateFriendlyCallDate("eDate","eTime","eDateDisplay");
  $("eTime").onchange=()=>updateFriendlyCallDate("eDate","eTime","eDateDisplay");
+ $("eStatus").onchange=()=>{
+   const scheduled=$("eStatus").value==="Scheduled";
+   $("cancelVisit").style.display=scheduled?"inline-block":"none";
+   $("deleteCall").style.display=scheduled?"none":"inline-block";
+ };
+ $("cancelVisit").onclick=()=>{
+   if(confirm("Cancel this scheduled shepherding visit? The visit will remain in your records as Cancelled.")){
+     c.status="Cancelled";
+     const goHome=returnToDashboardAfterCallEdit;
+     returnToDashboardAfterCallEdit=false;
+     closeModal();persist();
+     if(goHome)show("dashboard");
+   }
+ };
  $("deleteCall").onclick=()=>{
- if(confirm("Delete this shepherding call?")){
+ if(confirm("Delete this shepherding visit? This cannot be undone.")){
    const goHome=returnToDashboardAfterCallEdit;
    returnToDashboardAfterCallEdit=false;
    db.calls=db.calls.filter(x=>x.id!==id);
    closeModal();persist();
    if(goHome)show("dashboard");
  }
-};
+ };
  $("updateCall").onclick=()=>{
    const p=db.publishers.find(x=>x.id===$("ePub").value),b1=$("eB1").value,b2=$("eB2").value;
+   if(!p)return;
    if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
-   c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother2=b2;c.type=$("eType").value;c.status=$("eStatus").value;c.notes=$("eNotes").value;
+   const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
+   c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother2=b2;c.type=$("eType").value;c.status=$("eStatus").value;c.notes=$("eNotes").value;c.wholeFamily=wholeFamily;
    if(c.status==="Completed"){const pub=db.publishers.find(x=>x.id===c.publisherId);if(pub)pub.last=c.date}
+   const goHome=returnToDashboardAfterCallEdit;
+   returnToDashboardAfterCallEdit=false;
    closeModal();persist();
+   if(goHome)show("dashboard");
  };
 }
-
 $("saveGroup").onclick=()=>{
  const name=$("groupName").value.trim();
  const overseer=$("groupOverseer").value;
@@ -751,5 +789,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.27</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.30</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
