@@ -588,18 +588,19 @@ textarea.publisher-address-field{
 /* V2.34.3 status key */
 .publisher-status-key{
   display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:9px;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:5px;
   margin-left:auto;
-  font-size:.70rem;
+  font-size:.78rem;
+  line-height:1.1;
   opacity:.78;
-  flex-wrap:wrap;
 }
 .publisher-status-key span{
   display:inline-flex;
   align-items:center;
-  gap:4px;
+  gap:6px;
   white-space:nowrap;
 }
 .publisher-key-dot{
@@ -613,8 +614,8 @@ textarea.publisher-address-field{
 .publisher-key-dot.attention{background:#c83b3b}
 .publisher-key-dot.scheduled{background:#d8aa27}
 @media(max-width:700px){
-  .publisher-status-key{gap:6px;font-size:.63rem}
-  .publisher-key-dot{width:6px;height:6px;flex-basis:6px}
+  .publisher-status-key{gap:5px;font-size:.76rem}
+  .publisher-key-dot{width:7px;height:7px;flex-basis:7px}
 }
 </style>
 
@@ -1169,5 +1170,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.3</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.4</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>

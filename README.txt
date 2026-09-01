@@ -1,17 +1,11 @@
-SHEPHERDING ASSISTANT V2.34.3
+SHEPHERDING ASSISTANT V2.34.4
 
-SAFE BUILD — STATUS KEY ONLY
+Based directly on the working V2.34.3.
 
-Based directly on the working V2.34.2.
+Change only:
+- Stacks the publisher status key into three lines.
+- Slightly increases the key text size for readability.
+- Keeps the dots subtle.
 
-Change:
-- Adds the small color-coded status key beside the Add Publisher control.
-
-Green = Up to date
-Red = Needs attention
-Yellow = Scheduled
-
-No publisher data, database/storage logic, publisher renderer, calendar,
-dashboard, address handling, or role logic was changed.
-
-Replace ONLY index.html in the existing GitHub Pages repository.
+No data/storage, publisher, dashboard, calendar, or role logic changed.
+Replace ONLY index.html.
