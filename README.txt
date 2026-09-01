@@ -1,14 +1,19 @@
-SHEPHERDING ASSISTANT V2.34.12
+SHEPHERDING ASSISTANT V2.34.13
 
-Based on V2.34.11.
+Based on the working V2.34.12.
 
-Publishers list:
-- Family heads are NOT prioritized to the top.
-- All active publishers remain in one clean alphabetical Last Name, First Name list.
-- Family Head designation remains next to the appropriate publisher.
-- Household/family assignments are untouched.
-- Inactive publishers are NOT implemented in this build. When added later,
-  they should appear in a separate bottom section with a small
-  "Inactive Publishers" heading.
+FIX:
+The previous renderer attempted to sort using firstName/lastName fields that
+do not exist on the current publisher records. That left the original array
+order in place, which is why family heads appeared first.
+
+This build sorts using the publisher's actual stored/display name:
+Last Name, then First Name.
+
+No publisher records, household assignments, family-head flags, or other
+data are modified.
+
+Inactive publishers are NOT implemented yet; when added, they will be
+separated into a bottom section with an "Inactive Publishers" heading.
 
 Replace ONLY index.html.
