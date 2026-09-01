@@ -1,10 +1,7 @@
-SHEPHERDING ASSISTANT V2.33.3
+SHEPHERDING ASSISTANT V2.33.4
 
-Single-change build from V2.33.2.
+Correction to V2.33.3: the Publisher Address field is a real multiline
+textarea, starts at four lines tall, accepts Enter for new lines, and can be
+vertically resized.
 
-Change:
-- Added an expandable multiline Address field to publisher records.
-- Address is saved with the individual publisher and restored when editing.
-
-No family-head sharing, publisher sorting, role changes, header changes,
-calendar changes, or other application logic were intentionally changed.
+No other application logic was intentionally changed.
