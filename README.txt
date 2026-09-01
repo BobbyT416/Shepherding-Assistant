@@ -1,11 +1,10 @@
-SHEPHERDING ASSISTANT V2.33.1 — RECOVERY BUILD
+SHEPHERDING ASSISTANT V2.33.2
 
-This is a conservative recovery build based directly on V2.33.
+Single-change build from V2.33.1.
 
-No application logic, data structure, local-storage keys, publisher records,
-calendar code, dashboard code, or navigation code was intentionally changed.
+Change:
+- Shepherding call Brother 1 and Brother 2 dropdowns are limited to publishers
+  whose Role is Elder or Ministerial Servant.
 
-The only application change is the visible version identifier: 2.33.1.
-
-Use this build to confirm that the core app is stable before any additional
-features or cosmetic changes are made.
+No publisher data structure, local-storage key, calendar logic, dashboard
+layout, header, or other application functionality was intentionally changed.
