@@ -110,7 +110,7 @@ body.modal-open{overflow:hidden!important;height:100%!important}
   }
   .modal-dashboard{top:14px!important;right:58px!important;left:auto!important;bottom:auto!important}
 }
-.attention-link{background:transparent;color:#2457d6;padding:0;text-decoration:underline;font-weight:700}
+.attention-link{background:transparent;color:#2457d6;padding:0;text-decoration:underline;font:inherit;font-weight:600}
 .small{font-size:13px;color:#586474}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .month-nav{display:grid;grid-template-columns:minmax(82px,1fr) minmax(0,1.45fr) minmax(82px,1fr);gap:10px;align-items:center;margin-top:14px}
 .month-nav input{margin:0;min-width:0;width:100%;box-sizing:border-box;text-align:center}
@@ -711,6 +711,7 @@ textarea.publisher-address-field{
     font-size:.76rem;
   }
 }
+/* V2.34.8 — Dashboard Needs Attention: last-name-first alphabetical list and matching text size */
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -1027,7 +1028,23 @@ function renderCalendar(){
 function renderDashboard(){
  const s=db.publishers.map(status);
  $("stats").className="dashboard-stats";$("stats").innerHTML='<div class="stat-card"><div class="stat">'+db.publishers.length+'</div><div class="stat-label">Publishers</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="over").length+'</div><div class="stat-label">Overdue</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="soon").length+'</div><div class="stat-label">Due Soon</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="ok").length+'</div><div class="stat-label">Up to Date</div></div>';
- $("attention").innerHTML=db.publishers.filter(p=>status(p)[0]!=="ok").map(p=>'<p><button class="attention-link" data-attention-publisher="'+esc(p.id)+'">'+esc(p.name)+'</button> — '+status(p)[1]+'</p>').join("")||"None.";
+ const attention=db.publishers.filter(p=>status(p)[0]!=="ok").sort((a,b)=>{
+   const nameParts=p=>{
+     const parts=String(p.name||"").trim().split(/\s+/);
+     const first=p.firstName||parts.slice(0,-1).join(" ");
+     const last=p.lastName||parts[parts.length-1]||"";
+     return {first,last,display:(last&&first)?last+", "+first:(p.name||"")};
+   };
+   const aa=nameParts(a),bb=nameParts(b);
+   return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
+ });
+ $("attention").innerHTML=attention.map(p=>{
+   const parts=String(p.name||"").trim().split(/\s+/);
+   const first=p.firstName||parts.slice(0,-1).join(" ");
+   const last=p.lastName||parts[parts.length-1]||"";
+   const display=(last&&first)?last+", "+first:(p.name||"");
+   return '<p><button class="attention-link" data-attention-publisher="'+esc(p.id)+'">'+esc(display)+'</button> — '+status(p)[1]+'</p>';
+ }).join("")||"None.";
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.attentionPublisher));
 }
 function render(){
