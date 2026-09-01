@@ -1067,7 +1067,7 @@ function publisherSortParts(p){
 function renderDashboard(){
  const s=db.publishers.map(status);
  $("stats").className="dashboard-stats";$("stats").innerHTML='<div class="stat-card"><div class="stat">'+db.publishers.length+'</div><div class="stat-label">Publishers</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="over").length+'</div><div class="stat-label">Overdue</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="soon").length+'</div><div class="stat-label">Due Soon</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="ok").length+'</div><div class="stat-label">Up to Date</div></div>';
- const attention=db.publishers.filter(p=>status(p)[0]!=="ok").sort((a,b)=>{
+ const attention=db.publishers.filter(p=>status(p)[0]!=="ok" && (p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{
    const aa=publisherSortParts(a),bb=publisherSortParts(b);
    return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
  });
@@ -1330,5 +1330,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.18</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.19</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
