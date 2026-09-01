@@ -1,11 +1,11 @@
-SHEPHERDING ASSISTANT V2.34
+SHEPHERDING ASSISTANT V2.33.1 — RECOVERY BUILD
 
-Changes:
-- Publisher address is an expandable multi-line field for street, apartment/unit, city, state and ZIP.
-- Family Head checkbox added.
-- Family-head address automatically populates other members of the same household; phone and email remain individual.
-- Publisher list sorting: household/family alphabetically, Family Head first, then members alphabetically.
-- Role supports a blank option.
-- Shepherding Brother 1 and Brother 2 dropdowns are limited to Elders and Ministerial Servants.
-- Page headings are centered and styled consistently.
-- Existing shepherding/calendar functionality retained.
+This is a conservative recovery build based directly on V2.33.
+
+No application logic, data structure, local-storage keys, publisher records,
+calendar code, dashboard code, or navigation code was intentionally changed.
+
+The only application change is the visible version identifier: 2.33.1.
+
+Use this build to confirm that the core app is stable before any additional
+features or cosmetic changes are made.
