@@ -1,10 +1,11 @@
-SHEPHERDING ASSISTANT V2.22
+SHEPHERDING ASSISTANT V2.23
 
 Changes:
-- Reworked the Publishers page specifically for iPhone portrait.
-- Replaced the cramped six-column table with full-width publisher cards on screens 700px wide or less.
-- Publisher name remains the clickable edit control.
-- Each card shows role, household, last shepherding date, status, and Shepherding History.
-- Added an explicit mobile layout selector instead of relying on CSS :has(), improving compatibility with iPhone/Safari.
-- Desktop and larger-screen table layout remains unchanged.
-- Version: 2.22.
+- Cleaned up the Shepherding Call modal on mobile.
+- The dialog now stays within the phone viewport instead of extending off-screen.
+- Added a proper close (×) button in the upper-right corner.
+- Moved Dashboard navigation inside the dialog so it no longer floats over the underlying page.
+- Made the dialog internally scrollable on shorter phone screens.
+- Kept action buttons accessible at the bottom of the dialog.
+- Improved modal width, spacing, and rounded corners for a cleaner appearance.
+- Version: 2.23.
