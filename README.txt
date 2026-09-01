@@ -1,11 +1,10 @@
-SHEPHERDING ASSISTANT V2.20
+SHEPHERDING ASSISTANT V2.22
 
 Changes:
-- Fixed the calendar-opened call Cancel button so one click returns directly to Dashboard.
-- Save Changes and Delete also return to Dashboard when the call was opened from Calendar.
-- Removed the old document-level navigation workaround that could require a second click.
-- Fixed the modal Dashboard button to use the app's actual page navigation function.
-- Dashboard heading is now simply "Dashboard".
-- Reduced excess space above the Dashboard heading.
-- Tightened and cleaned up the Field Service Group / overseer / assistant card.
-- Version: 2.20.
+- Reworked the Publishers page specifically for iPhone portrait.
+- Replaced the cramped six-column table with full-width publisher cards on screens 700px wide or less.
+- Publisher name remains the clickable edit control.
+- Each card shows role, household, last shepherding date, status, and Shepherding History.
+- Added an explicit mobile layout selector instead of relying on CSS :has(), improving compatibility with iPhone/Safari.
+- Desktop and larger-screen table layout remains unchanged.
+- Version: 2.22.

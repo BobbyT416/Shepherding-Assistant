@@ -175,6 +175,92 @@ header.app-header h1{
   margin:5px 0;
   line-height:1.35;
 }
+
+/* V2.22 — polished mobile Publishers page */
+@media (max-width:700px){
+  #publishers{
+    width:100%;
+    max-width:none;
+    padding:16px 14px 110px;
+  }
+  #publishers h2{
+    margin:0 0 12px;
+    font-size:28px;
+    line-height:1.15;
+  }
+  #publishers > #addPublisher{
+    margin-bottom:2px;
+  }
+  #publishers .publishers-table-card{
+    padding:0;
+    background:transparent;
+    border:0;
+    overflow:visible;
+  }
+  #publishers .publishers-table-card table,
+  #publishers .publishers-table-card tbody{
+    display:block;
+    width:100%;
+  }
+  #publishers .publishers-table-card thead{
+    display:none;
+  }
+  #publishers .publishers-table-card tbody tr{
+    display:block;
+    width:100%;
+    background:#fff;
+    border:1px solid #d8dde5;
+    border-radius:12px;
+    padding:13px 14px;
+    margin:0 0 10px;
+    box-shadow:0 1px 2px rgba(23,32,42,.05);
+  }
+  #publishers .publishers-table-card tbody td{
+    display:block;
+    width:100%;
+    border:0;
+    padding:2px 0;
+    min-height:0;
+    line-height:1.35;
+  }
+  #publishers .publishers-table-card tbody td:nth-child(1){
+    padding-bottom:7px;
+  }
+  #publishers .publishers-table-card tbody td:nth-child(2)::before{
+    content:"Role: ";
+    font-weight:700;
+    color:#586474;
+  }
+  #publishers .publishers-table-card tbody td:nth-child(3)::before{
+    content:"Household: ";
+    font-weight:700;
+    color:#586474;
+  }
+  #publishers .publishers-table-card tbody td:nth-child(4)::before{
+    content:"Last Shepherding: ";
+    font-weight:700;
+    color:#586474;
+  }
+  #publishers .publishers-table-card tbody td:nth-child(5){
+    padding-top:7px;
+  }
+  #publishers .publishers-table-card tbody td:nth-child(6){
+    padding-top:9px;
+  }
+  #publishers .publishers-table-card tbody td:nth-child(6) button{
+    width:100%;
+  }
+  #publishers .publisher-name-button{
+    display:inline-block;
+    max-width:100%;
+    font-size:18px!important;
+    line-height:1.2!important;
+    white-space:normal!important;
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+    text-align:left!important;
+  }
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -213,7 +299,7 @@ header.app-header h1{
 <section id="publishers" class="page">
 <h2>Publishers</h2><button id="addPublisher">+ Add Publisher</button>
 <div class="card"><div class="row"><input id="publisherSearch" placeholder="Search publishers"><button id="clearPublisherSearch" class="secondary">Clear Search</button></div><p id="publisherCount" class="small"></p></div>
-<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Household</th><th>Last Shepherding</th><th>Status</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
+<div class="card publishers-table-card"><table><thead><tr><th>Name</th><th>Role</th><th>Household</th><th>Last Shepherding</th><th>Status</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
 </section>
 
 <section id="shepherding" class="page">
@@ -503,5 +589,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.20</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.22</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
