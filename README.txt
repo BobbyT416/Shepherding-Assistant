@@ -1,10 +1,10 @@
-SHEPHERDING ASSISTANT V2.33.2
+SHEPHERDING ASSISTANT V2.33.3
 
-Single-change build from V2.33.1.
+Single-change build from V2.33.2.
 
 Change:
-- Shepherding call Brother 1 and Brother 2 dropdowns are limited to publishers
-  whose Role is Elder or Ministerial Servant.
+- Added an expandable multiline Address field to publisher records.
+- Address is saved with the individual publisher and restored when editing.
 
-No publisher data structure, local-storage key, calendar logic, dashboard
-layout, header, or other application functionality was intentionally changed.
+No family-head sharing, publisher sorting, role changes, header changes,
+calendar changes, or other application logic were intentionally changed.

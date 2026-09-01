@@ -421,7 +421,7 @@ header.app-header h1{
   .month-nav{grid-template-columns:88px minmax(0,1fr) 88px!important;gap:6px!important}
   .month-nav button{font-size:13px!important;padding:9px 4px!important;white-space:nowrap}
 }
-.month-nav{display:flex!important;align-items:center!important;gap:8px!important;width:100%!important;box-sizing:border-box!important;overflow:visible!important}.month-nav button{flex:0 0 104px!important;width:104px!important;min-width:104px!important;max-width:104px!important;box-sizing:border-box!important;white-space:nowrap!important}.month-nav input[type="month"]{flex:1 1 auto!important;width:0!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;text-align:center!important}@media(max-width:700px){.month-nav{gap:6px!important}.month-nav button{flex-basis:96px!important;width:96px!important;min-width:96px!important;max-width:96px!important;font-size:13px!important;padding:9px 2px!important}.month-nav input[type="month"]{font-size:16px!important}}</style>
+.month-nav{display:flex!important;align-items:center!important;gap:8px!important;width:100%!important;box-sizing:border-box!important;overflow:visible!important}.month-nav button{flex:0 0 104px!important;width:104px!important;min-width:104px!important;max-width:104px!important;box-sizing:border-box!important;white-space:nowrap!important}.month-nav input[type="month"]{flex:1 1 auto!important;width:0!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;text-align:center!important}@media(max-width:700px){.month-nav{gap:6px!important}.month-nav button{flex-basis:96px!important;width:96px!important;min-width:96px!important;max-width:96px!important;font-size:13px!important;padding:9px 2px!important}.month-nav input[type="month"]{font-size:16px!important}}.publisher-address-field{min-height:64px;resize:vertical;line-height:1.4;white-space:pre-wrap}\n</style>
 
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b5ed7">
@@ -816,6 +816,7 @@ function editPublisher(id){
      if(otherHead){alert("This family already has a family head. Uncheck Family Head on the existing family head before assigning it here.");return}
    }
    p.name=name;p.role=$("fRole").value;p.house=house;p.familyHead=familyHead;p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
+p.address=$("fAddress")?$("fAddress").value.trim():(p.address||"");
    p.address=familyHead ? $("fAddress").value.trim() : (familyHeadForHouse(house,p.id)?.address||"");
    if(oldHouse.toLocaleLowerCase()!==house.toLocaleLowerCase() && !familyHead && !p.address)p.address="";
    if(familyHead)syncFamilyAddress(house,p.address,p.id);
@@ -948,5 +949,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33.2</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33.3</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
