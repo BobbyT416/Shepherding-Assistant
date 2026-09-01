@@ -919,13 +919,30 @@ function sortedPublishers(){
 }
 function renderPublishers(){
  const a=[...db.publishers].sort((x,y)=>{
-   const xn=publisherDisplayName(x), yn=publisherDisplayName(y);
-   const xp=xn.split(",",2), yp=yn.split(",",2);
-   const xl=(xp.length>1?xp[0]:xn).trim(), yl=(yp.length>1?yp[0]:yn).trim();
-   const xf=(xp.length>1?xp[1]: "").trim(), yf=(yp.length>1?yp[1]: "").trim();
-   const l=xl.localeCompare(yl,undefined,{sensitivity:"base"});
-   return l!==0?l:xf.localeCompare(yf,undefined,{sensitivity:"base"});
- });}
+   const xp=publisherSortParts(x), yp=publisherSortParts(y);
+   const l=xp.last.localeCompare(yp.last,undefined,{sensitivity:"base"});
+   return l!==0?l:xp.first.localeCompare(yp.first,undefined,{sensitivity:"base"});
+ });
+ $("publisherCount").textContent=db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group";
+ if(!a.length){$("publisherRows").innerHTML='<tr><td colspan="2">No publishers yet.</td></tr>';return;}
+ let rows="";
+ a.forEach(p=>{
+   const st=status(p),count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;
+   const hasScheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
+   let dotClass="current",dotTitle="Up to date";
+   if(hasScheduled){dotClass="scheduled";dotTitle="Scheduled visit";}
+   else if(st[0]==="over"){dotClass="attention";dotTitle="Needs attention";}
+   const parts=String(p.name||"").trim().split(/\s+/);
+   const first=p.firstName||parts.slice(0,-1).join(" ");
+   const last=p.lastName||parts[parts.length-1]||"";
+   const display=(last&&first)?last+", "+first:(p.name||"");
+   const head=p.familyHead?'<span class="family-head-badge">Family Head</span>':"";
+   rows+='<tr class="publisher-directory-row"><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(display)+'</button>'+head+'</td><td class="publisher-history-cell"><button class="secondary" data-history="'+esc(p.id)+'">History'+(count?' ('+count+')':'')+'</button></td></tr>';
+ });
+ $("publisherRows").innerHTML=rows;
+ document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
+ document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
+}
 function updateFriendlyCallDate(dateId,timeId,outId){
  const date=$(dateId),out=$(outId);
  if(!date||!out)return;
@@ -1284,5 +1301,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.13</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.14</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
