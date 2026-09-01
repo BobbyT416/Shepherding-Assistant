@@ -617,6 +617,23 @@ textarea.publisher-address-field{
   .publisher-status-key{gap:5px;font-size:.76rem}
   .publisher-key-dot{width:7px;height:7px;flex-basis:7px}
 }
+
+/* V2.34.5 publisher header */
+.publisher-status-key-column{
+  width:150px;
+  min-width:150px;
+  margin-left:auto;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+}
+.publisher-status-key-column .publisher-status-key{
+  margin-left:0;
+  width:max-content;
+}
+@media(max-width:700px){
+  .publisher-status-key-column{width:128px;min-width:128px}
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -654,11 +671,11 @@ textarea.publisher-address-field{
 
 <section id="publishers" class="page">
 <h2>Publishers</h2><button id="addPublisher">+ Add Publisher</button>
-<div class="publisher-status-key" aria-label="Publisher status key">
+<div class="publisher-status-key-column"><div class="publisher-status-key" aria-label="Publisher status key">
   <span><i class="publisher-key-dot current"></i>Up to date</span>
   <span><i class="publisher-key-dot attention"></i>Needs attention</span>
   <span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
-</div>
+</div></div>
 <p id="publisherCount" class="small publisher-count"></p>
 <div class="card publishers-table-card"><table class="publisher-directory-table"><thead><tr><th>Publisher</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
 </section>
@@ -1170,5 +1187,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.4</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.5</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>

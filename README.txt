@@ -1,11 +1,11 @@
-SHEPHERDING ASSISTANT V2.34.4
+SHEPHERDING ASSISTANT V2.34.5
 
-Based directly on the working V2.34.3.
+Based directly on working V2.34.4.
 
 Change only:
-- Stacks the publisher status key into three lines.
-- Slightly increases the key text size for readability.
-- Keeps the dots subtle.
+- Positions the three-line status key as a separate right-hand column.
+- Keeps Publishers and Add Publisher on the left.
+- Keeps the key symmetrical and tidy.
+- No data/storage or application logic changed.
 
-No data/storage, publisher, dashboard, calendar, or role logic changed.
 Replace ONLY index.html.
