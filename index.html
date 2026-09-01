@@ -566,6 +566,23 @@ function loadData(){
  }catch(e){}
  return fresh();
 }
+
+// V2.33.7: Family address sharing (address only)
+function syncFamilyAddressFromHead(p){
+  if(!p || !p.familyHead || !p.address) return;
+  const family = p.family || p.familyName || p.familyId;
+  if(!family) return;
+  const key = String(family).trim().toLowerCase();
+  if(!key) return;
+  const list = window.publishers || publishers;
+  if(!Array.isArray(list)) return;
+  list.forEach(x=>{
+    if(x!==p && String(x.family || x.familyName || x.familyId || "").trim().toLowerCase()===key){
+      x.address = p.address;
+    }
+  });
+}
+
 function persist(){localStorage.setItem(DATA_KEY,JSON.stringify(db));render()}
 function $(id){return document.getElementById(id)}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
@@ -849,7 +866,8 @@ function editPublisher(id){
      const otherHead=familyHeadForHouse(house,p.id);
      if(otherHead){alert("This family already has a family head. Uncheck Family Head on the existing family head before assigning it here.");return}
    }
-   p.name=name;p.role=$("fRole").value;p.house=house;p.familyHead=familyHead;p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
+   p.name=name;p.role=$("fRole").value;p.house=house;p.familyHead=familyHead;
+syncFamilyAddressFromHead(p);p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
 p.address=$("fAddress")?$("fAddress").value.trim():(p.address||"");
    p.address=familyHead ? $("fAddress").value.trim() : (familyHeadForHouse(house,p.id)?.address||"");
    if(oldHouse.toLocaleLowerCase()!==house.toLocaleLowerCase() && !familyHead && !p.address)p.address="";
@@ -983,5 +1001,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33.6</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33.7</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
