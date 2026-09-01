@@ -1,7 +1,16 @@
-SHEPHERDING ASSISTANT V2.33.4
+SHEPHERDING ASSISTANT V2.33.5
 
-Correction to V2.33.3: the Publisher Address field is a real multiline
-textarea, starts at four lines tall, accepts Enter for new lines, and can be
-vertically resized.
+Fix for existing-address editing.
 
-No other application logic was intentionally changed.
+The prior build accidentally left a one-line input with the same fAddress ID
+as the textarea. The browser was therefore editing the one-line input.
+
+This build removes that duplicate and makes Address a single true multiline
+textarea in the Edit Publisher form. Add Publisher uses the same multiline
+textarea.
+
+- Four visible lines initially
+- Enter creates a new line
+- Vertical resize supported
+
+No data/storage, header, calendar, or other application behavior was changed.

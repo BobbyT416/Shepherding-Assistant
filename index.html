@@ -436,6 +436,21 @@ textarea.publisher-address-field{
   padding:10px !important;
   font:inherit !important;
 }
+
+/* V2.33.5 address fix */
+textarea.publisher-address-field{
+  display:block !important;
+  width:100% !important;
+  min-height:96px !important;
+  height:auto !important;
+  box-sizing:border-box !important;
+  resize:vertical !important;
+  overflow-y:auto !important;
+  white-space:pre-wrap !important;
+  line-height:1.4 !important;
+  padding:10px !important;
+  font:inherit !important;
+}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -808,7 +823,7 @@ function editPublisher(id){
  const head=familyHeadForHouse(p.house,p.id);
  const inherited=head && !p.familyHead;
  const initialAddress=inherited ? (head.address||"") : (p.address||"");
- openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div><label>Address</label><input id="fAddress" autocomplete="street-address" value="'+esc(initialAddress)+'"'+(inherited?' readonly':'')+'>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP"></textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="cancel" class="secondary">Cancel</button></div>');
+ openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP"></textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="cancel" class="secondary">Cancel</button></div>');
  const updateAddressState=()=>{
    const h=familyHeadForHouse($("fHouse").value,p.id);
    const inheritedNow=h&&!$("fFamilyHead").checked;
@@ -839,7 +854,7 @@ p.address=$("fAddress")?$("fAddress").value.trim():(p.address||"");
  };
 }
 $("addPublisher").onclick=()=>{
- openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName" autocomplete="off"><label>Role</label><select id="fRole">'+publisherRoleOptions("")+'</select><label>Household</label><input id="fHouse" autocomplete="off"><div class="family-head-row"><input id="fFamilyHead" type="checkbox"><label for="fFamilyHead">Family Head</label></div><label>Address</label><input id="fAddress" autocomplete="street-address"><p id="familyAddressNote" class="family-address-note" style="display:none">Address will be populated from the family head.</p><label>Phone</label><input id="fPhone" type="tel" autocomplete="tel"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
+ openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName" autocomplete="off"><label>Role</label><select id="fRole">'+publisherRoleOptions("")+'</select><label>Household</label><input id="fHouse" autocomplete="off"><div class="family-head-row"><input id="fFamilyHead" type="checkbox"><label for="fFamilyHead">Family Head</label></div><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP"></textarea><p id="familyAddressNote" class="family-address-note" style="display:none">Address will be populated from the family head.</p><label>Phone</label><input id="fPhone" type="tel" autocomplete="tel"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
  $("fHouse").oninput=()=>{
    const h=familyHeadForHouse($("fHouse").value);
    const isHead=$("fFamilyHead").checked;
@@ -964,5 +979,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33.4</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.33.5</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
