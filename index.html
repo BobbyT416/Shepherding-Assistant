@@ -1174,6 +1174,7 @@ function renderDashboard(){
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.attentionPublisher));
 }
 function render(){
+ syncAllPublisherLast();
  try{localStorage.setItem(DATA_KEY,JSON.stringify(db));$("storageStatus").textContent="Local data active — saved on this device"}catch(e){$("storageStatus").textContent="Unable to save local data"}
  renderGroup();renderPublishers();renderCalls();renderCalendar();renderDashboard()
 }
@@ -1489,5 +1490,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.32</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.33</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
