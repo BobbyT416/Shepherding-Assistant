@@ -716,6 +716,12 @@ textarea.publisher-address-field{
 /* V2.34.9 — Dashboard Needs Attention: clean last-name-first alphabetical list */
 
 /* V2.34.26 — Publishers status-dot contrast/size polish only; no behavior/data changes */
+#dashboard .dashboard-group-card{display:flex;align-items:center;gap:18px;}
+#dashboard .dashboard-group-content{min-width:0;flex:1;}
+#dashboard .dashboard-status-key-column{flex:0 0 auto;display:flex;align-items:center;}
+#dashboard .dashboard-status-key{margin-left:0;}
+@media(max-width:560px){#dashboard .dashboard-group-card{gap:10px;}#dashboard .dashboard-status-key{font-size:.72rem;gap:4px;}#dashboard .dashboard-status-key span{gap:5px;}}
+
 #dashboard .dashboard-intro{
   position:relative;
   overflow:hidden;
@@ -789,9 +795,14 @@ textarea.publisher-address-field{
 
 <section id="dashboard" class="page active">
 <h2>Dashboard</h2>
-<div class="card dashboard-intro"><h3>Field Service Group</h3>
+<div class="card dashboard-intro dashboard-group-card"><div class="dashboard-group-content"><h3>Field Service Group</h3>
 <p><b id="dashGroup">Not configured</b></p>
-<p>Group Overseer: <b id="dashOverseer">Not configured</b><br>Assistant: <b id="dashAssistant">Not configured</b></p></div>
+<p>Group Overseer: <b id="dashOverseer">Not configured</b><br>Assistant: <b id="dashAssistant">Not configured</b></p></div><div class="dashboard-status-key-column">
+<div class="publisher-status-key dashboard-status-key" aria-label="Publisher status key">
+<span><i class="publisher-key-dot current"></i>Up to date</span>
+<span><i class="publisher-key-dot attention"></i>Needs attention</span>
+<span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
+</div></div></div>
 <div id="stats" class="grid"></div>
 <div class="card dashboard-section-card attention-card"><h3>Needs Attention</h3><div id="attention">None.</div></div>
 <div class="card dashboard-section-card upcoming-card"><h3>Upcoming Shepherding Calls</h3><div id="upcoming">None.</div></div>
@@ -1154,7 +1165,10 @@ function renderDashboard(){
    return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
  });
  $("attention").innerHTML=attention.map(p=>{
-   return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'">'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>';
+   const scheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
+  const dotClass=scheduled?"scheduled":"attention";
+  const dotTitle=scheduled?"Scheduled visit":"Needs attention";
+  return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>';
  }).join("")||"None.";
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.attentionPublisher));
 }
@@ -1470,5 +1484,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.28</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.29</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
