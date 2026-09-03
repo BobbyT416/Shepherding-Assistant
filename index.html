@@ -969,6 +969,15 @@ function brotherOptions(selected=""){
  const names=[...new Set(a)];
  return '<option value="">— Select —</option>'+names.map(n=>'<option value="'+esc(n)+'"'+(n===selected?' selected':'')+'>'+esc(n)+'</option>').join("")
 }
+function syncPublisherLast(publisherId){
+ const p=db.publishers.find(x=>x.id===publisherId);
+ if(!p)return;
+ const completed=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed"&&c.date).sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||"")));
+ p.last=completed.length?completed[0].date:"";
+}
+function syncAllPublisherLast(){
+ (db.publishers||[]).forEach(p=>syncPublisherLast(p.id));
+}
 function status(p){
  if(!p.last)return ["over","Never contacted"];
  const months=(Date.now()-new Date(p.last+"T12:00:00"))/86400000/30.44;
@@ -1363,6 +1372,7 @@ function editCall(id,fromCalendar=false){
  $("cancelVisit").onclick=()=>{
    if(confirm("Cancel this scheduled shepherding visit? The visit will remain in your records as Cancelled.")){
      c.status="Cancelled";
+     syncPublisherLast(c.publisherId);
      const goHome=returnToDashboardAfterCallEdit;
      returnToDashboardAfterCallEdit=false;
      closeModal();persist();
@@ -1381,10 +1391,14 @@ function editCall(id,fromCalendar=false){
  $("updateCall").onclick=()=>{
    const p=db.publishers.find(x=>x.id===$("ePub").value),b1=$("eB1").value,b2=$("eB2").value;
    if(!p)return;
+   const oldPublisherId=c.publisherId;
+   const oldStatus=c.status;
    if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
    const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
    c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother2=b2;c.type=$("eType").value;c.status=$("eStatus").value;c.notes=$("eNotes").value;c.wholeFamily=wholeFamily;
-   if(c.status==="Completed"){const pub=db.publishers.find(x=>x.id===c.publisherId);if(pub)pub.last=c.date}
+   if(oldStatus==="Completed")syncPublisherLast(oldPublisherId);
+   if(c.status==="Completed")syncPublisherLast(c.publisherId);
+   else syncPublisherLast(c.publisherId);
    const goHome=returnToDashboardAfterCallEdit;
    returnToDashboardAfterCallEdit=false;
    closeModal();persist();
@@ -1475,5 +1489,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.31</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.32</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
