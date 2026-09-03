@@ -111,8 +111,7 @@ body.modal-open{overflow:hidden!important;height:100%!important}
   .modal-dashboard{top:14px!important;right:58px!important;left:auto!important;bottom:auto!important}
 }
 .attention-item{margin:0;padding:8px 0;line-height:1.35}.attention-link{background:transparent;color:#2457d6;padding:0;border:0;text-decoration:underline;font-family:inherit;font-size:1rem;font-weight:400;line-height:inherit;cursor:pointer}.attention-reason{font-size:1rem}
-.backup-options{margin:12px 0 2px}.backup-switch{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}.backup-switch input{position:absolute;opacity:0;width:1px;height:1px}.backup-slider{position:relative;width:42px;height:24px;border-radius:24px;background:#c7ced6;flex:0 0 auto;transition:.15s}.backup-slider:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:.15s}.backup-switch input:checked + .backup-slider{background:#2f7d32}.backup-switch input:checked + .backup-slider:before{transform:translateX(18px)}.backup-switch input:focus-visible + .backup-slider{outline:2px solid #4c8bf5;outline-offset:2px}
-.small{font-size:13px;color:#586474}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.small{font-size:13px;color:#586474}.backup-option-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:4px 0 2px}.backup-option-row>div{min-width:0}.switch{position:relative;display:block;width:48px;height:28px;margin:0;flex:0 0 auto}.switch input{opacity:0;width:0;height:0;position:absolute}.slider{position:absolute;inset:0;cursor:pointer;background:#c7ced8;border-radius:999px;transition:.18s}.slider:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.22);transition:.18s}.switch input:checked + .slider{background:#2457d6}.switch input:checked + .slider:before{transform:translateX(20px)}.switch input:focus-visible + .slider{outline:2px solid #2457d6;outline-offset:2px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .month-nav{display:grid;grid-template-columns:minmax(82px,1fr) minmax(0,1.45fr) minmax(82px,1fr);gap:10px;align-items:center;margin-top:14px}
 .month-nav input{margin:0;min-width:0;width:100%;box-sizing:border-box;text-align:center}
 @media(max-width:700px){.month-nav{grid-template-columns:minmax(76px,1fr) minmax(0,1.35fr) minmax(76px,1fr);gap:6px}.month-nav button{padding:9px 5px;font-size:12px}}
@@ -161,6 +160,19 @@ body.modal-open{overflow:hidden!important;height:100%!important}
 
 .app-footer{text-align:center;padding:24px 20px 30px;margin-top:20px;border-top:1px solid #d8dde5;color:#586474;font-size:13px}.app-footer b{font-size:15px;color:#17202a}.app-footer .copyright{margin-top:6px;font-size:12px}.friendly-date{margin:6px 0 12px;font-weight:600;color:#17202a}.friendly-date-input{position:relative;width:100%}.friendly-date-input input{color:transparent;-webkit-text-fill-color:transparent;caret-color:transparent}.friendly-date-input input::-webkit-datetime-edit{color:transparent}.friendly-date-input input::-webkit-calendar-picker-indicator{opacity:.65}.friendly-input-text{position:absolute;left:14px;right:42px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:16px;color:#17202a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 input[type="time"]{text-align:left}
+/* V2.34.25 — Dashboard cosmetic polish only */
+#dashboard > h2{font-weight:700;letter-spacing:-.2px;margin-bottom:15px}
+.dashboard-group-card{display:flex;gap:15px;align-items:stretch;padding:17px 18px;box-shadow:0 2px 7px rgba(23,32,42,.05);border-color:#d5dbe4}
+.dashboard-group-accent{width:4px;min-width:4px;border-radius:4px;background:#2457d6}
+.dashboard-group-card h3{margin:0 0 8px!important;font-size:18px!important}
+.dashboard-group-card p{color:#586474}
+.dashboard-group-card b{color:#17202a}
+.dashboard-section-card{padding:16px 18px;box-shadow:0 2px 7px rgba(23,32,42,.04)}
+.dashboard-section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid #e5e8ed;padding-bottom:9px;margin-bottom:4px}
+.dashboard-section-heading h3{margin:0;font-size:17px}
+.dashboard-section-hint{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#7a8594;white-space:nowrap}
+@media(max-width:700px){.dashboard-group-card{padding:15px 14px;gap:12px}.dashboard-section-card{padding:14px}.dashboard-section-heading h3{font-size:16px}}
+
 .dashboard-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 18px}
 .stat-card{background:#fff;border:1px solid #d8dde5;border-radius:12px;padding:14px 15px;min-width:0;box-shadow:0 1px 2px rgba(23,32,42,.04)}
 .stat-card .stat{font-size:25px;line-height:1.05;margin-bottom:5px}
@@ -740,12 +752,12 @@ textarea.publisher-address-field{
 
 <section id="dashboard" class="page active">
 <h2>Dashboard</h2>
-<div class="card"><h3>Field Service Group</h3>
+<div class="card dashboard-group-card"><div class="dashboard-group-accent"></div><div><h3>Field Service Group</h3>
 <p><b id="dashGroup">Not configured</b></p>
-<p>Group Overseer: <b id="dashOverseer">Not configured</b><br>Assistant: <b id="dashAssistant">Not configured</b></p></div>
+<p>Group Overseer: <b id="dashOverseer">Not configured</b><br>Assistant: <b id="dashAssistant">Not configured</b></p></div></div>
 <div id="stats" class="grid"></div>
-<div class="card"><h3>Needs Attention</h3><div id="attention">None.</div></div>
-<div class="card"><h3>Upcoming Shepherding Calls</h3><div id="upcoming">None.</div></div>
+<div class="card dashboard-section-card"><div class="dashboard-section-heading"><h3>Needs Attention</h3><span class="dashboard-section-hint">Follow-up</span></div><div id="attention">None.</div></div>
+<div class="card dashboard-section-card"><div class="dashboard-section-heading"><h3>Upcoming Shepherding Calls</h3><span class="dashboard-section-hint">Next visits</span></div><div id="upcoming">None.</div></div>
 </section>
 
 <section id="publishers" class="page">
@@ -803,13 +815,10 @@ textarea.publisher-address-field{
 <div class="card"><label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
 <p class="small">A publisher is flagged when the last completed shepherding call is older than this interval.</p></div>
 <div class="card"><h3>Transfer / Backup</h3>
-<p>Nothing is uploaded automatically. Use one backup option to save or share the group data using the locations available on your device.</p>
-<div class="backup-options">
-<label class="backup-switch"><input id="includeBackupNotes" type="checkbox"><span class="backup-slider"></span><span><b>Include Notes in Backup</b><br><span class="small">Turn this on only when you want personal notes included.</span></span></label>
-</div>
+<p>Nothing is uploaded automatically. Export creates a backup file that you can save or share using the options available on your device.</p>
+<div class="backup-option-row"><div><b>Include Notes in Backup</b><div class="small">Turn this on only when you want publisher and visit notes included. Notes stay on this device either way.</div></div><label class="switch"><input id="includeBackupNotes" type="checkbox"><span class="slider"></span></label></div>
 <div class="actions"><button id="shareBackup">Save / Share Backup</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
-<p class="small">For privacy, notes are excluded from backups unless the slider is turned on. Your notes on this device are never deleted by turning it off.</p>
-<p class="small">On iPhone/iPad, <b>Save / Share Backup</b> can use <b>Save to Files</b>. For importing from OneDrive or another cloud service on iPhone/iPad: open the <b>Files</b> app, tap <b>Browse</b> → <b>OneDrive</b> (or another location), find your backup, then use <b>Copy</b> or <b>Move</b> to place the backup in <b>On My iPhone</b>. Return here and tap <b>Import Group Data</b> to select it.</p></div>
+<p class="small">The Save / Share Backup option lets you choose an available destination, including <b>Save to Files</b> on iPhone/iPad or a local folder on your computer. In Files, tap <b>Browse</b> to see Locations such as OneDrive, iCloud Drive, Google Drive, or Dropbox.</p></div>
 <div class="card"><h3>Local Storage</h3><p class="small">This app uses one fixed local data key. Keep using the same app folder/file when updating the program so the browser can retain its local data. The export backup is the safe way to move data to another elder's device.</p>
 <button id="clearData" class="danger">Erase This Device's Group Data</button></div>
 </section>
@@ -1362,36 +1371,15 @@ $("shareBackup").onclick=async()=>{
    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
  }
 };
-$("importData").onclick=async()=>{
- try{
-   if(window.showOpenFilePicker){
-     const handles=await window.showOpenFilePicker({
-       multiple:false,
-       types:[{description:"Shepherding Assistant backup",accept:{"application/json":[".json"]}}]
-     });
-     if(handles && handles[0]){
-       const f=await handles[0].getFile();
-       importBackupFile(f);
-     }
-     return;
-   }
- }catch(err){
-   if(err && err.name==="AbortError") return;
- }
- $("importFile").click();
+$("importData").onclick=()=>$("importFile").click();
+$("importFile").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{try{const x=JSON.parse(r.result);if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls))throw Error();if(confirm("Replace the current group data with this backup?")){db=x;persist();alert("Group data imported successfully.")}}catch(err){alert("That backup file is not a valid Shepherding Assistant V2 backup.")}e.target.value=""};r.readAsText(f);
 };
-function importBackupFile(f){
- if(!f)return;
- const r=new FileReader();
- r.onload=()=>{try{const x=JSON.parse(r.result);if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls))throw Error();if(confirm("Replace the current group data with this backup?")){db=x;persist();alert("Group data imported successfully.")}}catch(err){alert("That backup file is not a valid Shepherding Assistant V2 backup.")}$("importFile").value=""};
- r.readAsText(f);
-}
-$("importFile").onchange=e=>importBackupFile(e.target.files[0]);
-
 $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this device? This cannot be undone unless you have exported a backup.")){localStorage.removeItem(DATA_KEY);db=fresh();render()}};
 
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.24</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.21</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
