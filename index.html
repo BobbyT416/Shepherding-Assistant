@@ -809,7 +809,7 @@ textarea.publisher-address-field{
 </div>
 <div class="actions"><button id="shareBackup">Save / Share Backup</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
 <p class="small">For privacy, notes are excluded from backups unless the slider is turned on. Your notes on this device are never deleted by turning it off.</p>
-<p class="small">On iPhone/iPad, <b>Save / Share Backup</b> can use <b>Save to Files</b>. For importing, tap <b>Browse</b> in the Files picker, then choose <b>OneDrive</b> (or another location under Locations). Which locations appear is controlled by iOS and the File Provider apps installed on the device.</p></div>
+<p class="small">On iPhone/iPad, <b>Save / Share Backup</b> can use <b>Save to Files</b>. For importing from OneDrive or another cloud service on iPhone/iPad: open the <b>Files</b> app, tap <b>Browse</b> → <b>OneDrive</b> (or another location), find your backup, then use <b>Copy</b> or <b>Move</b> to place the backup in <b>On My iPhone</b>. Return here and tap <b>Import Group Data</b> to select it.</p></div>
 <div class="card"><h3>Local Storage</h3><p class="small">This app uses one fixed local data key. Keep using the same app folder/file when updating the program so the browser can retain its local data. The export backup is the safe way to move data to another elder's device.</p>
 <button id="clearData" class="danger">Erase This Device's Group Data</button></div>
 </section>
@@ -1393,5 +1393,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.23</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.24</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>

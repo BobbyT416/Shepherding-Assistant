@@ -1,14 +1,4 @@
-SHEPHERDING ASSISTANT V2.34.21
+Shepherding Assistant V2.34.24
 
-Based directly on working V2.34.20.
-
-CHANGE:
-Updated the backup instructions to make the iPhone workflow clearer:
-- Choose Save to Files.
-- If iOS opens directly to a phone folder, tap Browse.
-- Browse shows enabled storage Locations such as OneDrive, iCloud Drive,
-  Google Drive, or Dropbox.
-
-No application behavior, database structure, or group data was changed.
-
-Replace ONLY index.html.
+This build keeps the single Save / Share Backup option and privacy slider.
+Importing from OneDrive/Google Drive/Dropbox on iPhone/iPad is explained using the Files app: copy/move the backup from the cloud location to On My iPhone, then use Import Group Data.
