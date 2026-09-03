@@ -166,6 +166,20 @@ input[type="time"]{text-align:left}
 .stat-card .stat{font-size:25px;line-height:1.05;margin-bottom:5px}
 .stat-label{font-size:13px;font-weight:700;color:#586474;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:700px){.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat-card{padding:12px}.stat-card .stat{font-size:23px}.stat-label{font-size:12px}}
+.dashboard-stat-button{width:100%;text-align:left;cursor:pointer;appearance:none;-webkit-appearance:none;color:inherit;font:inherit;transition:box-shadow .15s ease,border-color .15s ease,transform .05s ease}
+.dashboard-stat-button:hover{border-color:#b9c2cf}
+.dashboard-stat-button:active{transform:translateY(1px)}
+.dashboard-stat-button:focus-visible{outline:2px solid #2457d6;outline-offset:2px}
+.dashboard-stat-button .stat-label-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dashboard-stat-button .stat-chevron{font-size:12px;color:#7a8492;line-height:1;transition:transform .15s ease}
+.dashboard-stat-button[aria-expanded="true"] .stat-chevron{transform:rotate(180deg)}
+.dashboard-stat-panel{grid-column:1/-1;background:#fff;border:1px solid #d8dde5;border-radius:12px;padding:7px 15px;margin-top:-5px;box-shadow:0 1px 2px rgba(23,32,42,.04)}
+.dashboard-stat-panel-header{font-size:12px;font-weight:700;color:#7a8492;padding:5px 0 4px;text-transform:uppercase;letter-spacing:.03em}
+.dashboard-stat-person{display:block;width:100%;padding:9px 0;border:0;border-top:1px solid #eef0f3;background:transparent;text-align:left;font:inherit;color:#2457d6;cursor:pointer}
+.dashboard-stat-person:first-of-type{border-top:0}
+.dashboard-stat-person:hover{text-decoration:underline}
+.dashboard-stat-person:focus-visible{outline:2px solid #2457d6;outline-offset:-2px}
+.dashboard-stat-empty{padding:9px 0;color:#586474;font-size:14px}
 
 /* V2.13 form-control normalization */
 input[type="date"],input[type="time"]{
@@ -1158,9 +1172,41 @@ function publisherSortParts(p){
  const parts=display.split(",",2);
  return {last:(parts[0]||"").trim(),first:(parts[1]||"").trim()};
 }
+let dashboardExpanded=null;
 function renderDashboard(){
- const s=db.publishers.map(status);
- $("stats").className="dashboard-stats";$("stats").innerHTML='<div class="stat-card"><div class="stat">'+db.publishers.length+'</div><div class="stat-label">Publishers</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="over").length+'</div><div class="stat-label">Overdue</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="soon").length+'</div><div class="stat-label">Due Soon</div></div><div class="stat-card"><div class="stat">'+s.filter(x=>x[0]==="ok").length+'</div><div class="stat-label">Up to Date</div></div>';
+ const active=db.publishers.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
+ const buckets={
+  publishers:active,
+  overdue:active.filter(p=>status(p)[0]==="over"),
+  soon:active.filter(p=>status(p)[0]==="soon"),
+  ok:active.filter(p=>status(p)[0]==="ok")
+ };
+ Object.values(buckets).forEach(list=>list.sort((a,b)=>{
+   const aa=publisherSortParts(a),bb=publisherSortParts(b);
+   return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
+ }));
+ const cards=[
+  ["publishers","Publishers",buckets.publishers.length],
+  ["overdue","Overdue",buckets.overdue.length],
+  ["soon","Due Soon",buckets.soon.length],
+  ["ok","Up to Date",buckets.ok.length]
+ ];
+ let statsHtml=cards.map(([key,label,count])=>'<button type="button" class="stat-card dashboard-stat-button" data-stat-filter="'+key+'" aria-expanded="'+(dashboardExpanded===key?'true':'false')+'"><div class="stat">'+count+'</div><div class="stat-label-row"><span class="stat-label">'+label+'</span><span class="stat-chevron" aria-hidden="true">⌄</span></div></button>').join("");
+ if(dashboardExpanded){
+   const list=buckets[dashboardExpanded]||[];
+   const label=cards.find(x=>x[0]===dashboardExpanded)?.[1]||"Publishers";
+   statsHtml+='<div class="dashboard-stat-panel"><div class="dashboard-stat-panel-header">'+label+'</div>';
+   statsHtml+=list.map(p=>'<button type="button" class="dashboard-stat-person" data-stat-publisher="'+esc(p.id)+'">'+esc(publisherDisplayName(p))+'</button>').join("") || '<div class="dashboard-stat-empty">None.</div>';
+   statsHtml+='</div>';
+ }
+ $("stats").className="dashboard-stats";
+ $("stats").innerHTML=statsHtml;
+ document.querySelectorAll("[data-stat-filter]").forEach(b=>b.onclick=()=>{
+   const key=b.dataset.statFilter;
+   dashboardExpanded=dashboardExpanded===key?null:key;
+   renderDashboard();
+ });
+ document.querySelectorAll("[data-stat-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.statPublisher));
  const attention=db.publishers.filter(p=>status(p)[0]!=="ok" && (p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{
    const aa=publisherSortParts(a),bb=publisherSortParts(b);
    return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
@@ -1174,7 +1220,6 @@ function renderDashboard(){
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.attentionPublisher));
 }
 function render(){
- syncAllPublisherLast();
  try{localStorage.setItem(DATA_KEY,JSON.stringify(db));$("storageStatus").textContent="Local data active — saved on this device"}catch(e){$("storageStatus").textContent="Unable to save local data"}
  renderGroup();renderPublishers();renderCalls();renderCalendar();renderDashboard()
 }
