@@ -463,8 +463,8 @@ textarea.publisher-address-field{
 .publisher-directory-table td{padding:5px 9px;border-top:1px solid rgba(127,127,127,.18);vertical-align:middle}
 .publisher-directory-row{height:38px}
 .publisher-directory-row .publisher-name-button{display:inline-flex;align-items:center;gap:8px;width:auto;background:none;border:0;padding:2px 0;margin:0;font:inherit;font-weight:600;cursor:pointer;text-align:left}
-.publisher-status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 8px}
-.publisher-status-dot.current{background:#2e9b4f}.publisher-status-dot.attention{background:#c83b3b}.publisher-status-dot.scheduled{background:#d8aa27}.publisher-status-dot.inactive{background:#9aa0a6}.inactive-section-heading td{padding:10px 8px 6px!important;font-size:12px;font-weight:700;letter-spacing:.03em;color:#667085;background:transparent;border-top:1px solid #d9dde3}.inactive-publisher-row{opacity:.82}
+.publisher-status-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+.publisher-status-dot.current{background:#2e9b4f}.publisher-status-dot.attention{background:#b52f2f}.publisher-status-dot.scheduled{background:#d49a00}.publisher-status-dot.inactive{background:#9aa0a6}.inactive-section-heading td{padding:10px 8px 6px!important;font-size:12px;font-weight:700;letter-spacing:.03em;color:#667085;background:transparent;border-top:1px solid #d9dde3}.inactive-publisher-row{opacity:.82}
 .publisher-history-cell{width:1%;white-space:nowrap}.publisher-history-cell button{font-size:11px;padding:4px 7px;margin:0}
 .publisher-directory-table .family-divider td{padding:8px 9px 5px!important}
 @media(max-width:700px){.publisher-directory-table th,.publisher-directory-table td{padding-left:6px;padding-right:6px}.publisher-directory-row{height:35px}.publisher-directory-row .publisher-name-button{font-size:14px}.publisher-history-cell button{font-size:10px;padding:3px 6px}}
@@ -530,9 +530,9 @@ textarea.publisher-address-field{
     text-align:left!important;
   }
   #publishers .publisher-directory-row .publisher-status-dot{
-    width:7px!important;
-    height:7px!important;
-    flex:0 0 7px!important;
+    width:9px!important;
+    height:9px!important;
+    flex:0 0 9px!important;
   }
   #publishers .publisher-history-cell{
     width:auto!important;
@@ -606,17 +606,18 @@ textarea.publisher-address-field{
 }
 .publisher-key-dot{
   display:inline-block;
-  width:7px;
-  height:7px;
+  width:8px;
+  height:8px;
   border-radius:50%;
-  flex:0 0 7px;
+  flex:0 0 8px;
+  border:1px solid rgba(23,32,42,.22);
 }
 .publisher-key-dot.current{background:#2e9b4f}
-.publisher-key-dot.attention{background:#c83b3b}
-.publisher-key-dot.scheduled{background:#d8aa27}
+.publisher-key-dot.attention{background:#b52f2f}
+.publisher-key-dot.scheduled{background:#d49a00}
 @media(max-width:700px){
   .publisher-status-key{gap:5px;font-size:.76rem}
-  .publisher-key-dot{width:7px;height:7px;flex-basis:7px}
+  .publisher-key-dot{width:8px;height:8px;flex-basis:8px}
 }
 
 /* V2.34.5 publisher header */
@@ -714,7 +715,7 @@ textarea.publisher-address-field{
 }
 /* V2.34.9 — Dashboard Needs Attention: clean last-name-first alphabetical list */
 
-/* V2.34.25 — Dashboard cosmetic polish only; no behavior/data changes */
+/* V2.34.26 — Publishers status-dot contrast/size polish only; no behavior/data changes */
 #dashboard .dashboard-intro{
   position:relative;
   overflow:hidden;
@@ -1441,5 +1442,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.25</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.26</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
