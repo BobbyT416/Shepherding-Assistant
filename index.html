@@ -16,7 +16,7 @@ label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
 input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;border:1px solid #bdc5d0;border-radius:7px;background:#fff;font:inherit}
 textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:650px){.row{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e1e4e8;text-align:left}
-.call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
+.call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.shepherding-calls-card{margin-top:16px}.completed-calls-card{margin-top:14px}.completed-calls-card h3{color:#4d5968}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
 .modal{
   display:none;
   position:fixed;
@@ -817,7 +817,8 @@ textarea.publisher-address-field{
 
 <section id="shepherding" class="page">
 <h2>Shepherding</h2><button id="scheduleCall">+ Schedule Shepherding Call</button>
-<div class="card"><h3>All Calls</h3><div id="callList">No calls recorded.</div></div>
+<div class="card shepherding-calls-card"><h3>Scheduled Calls</h3><div id="scheduledCallList">No scheduled calls.</div></div>
+<div class="card shepherding-calls-card completed-calls-card"><h3>Completed Calls</h3><div id="completedCallList">No completed calls.</div></div>
 </section>
 
 <section id="calendar" class="page">
@@ -1078,10 +1079,13 @@ function formatCallDateTime(c){
 }
 function callButton(c){return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+'</button>'}
 function renderCalls(){
- const a=[...db.calls].sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
- $("callList").innerHTML=a.length?a.map(callButton).join(""):'No calls recorded.';
+ const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+ const completed=[...db.calls].filter(c=>c.status==="Completed").sort((x,y)=>(y.date+y.time).localeCompare(x.date+x.time));
+ $("scheduledCallList").innerHTML=scheduled.length?scheduled.map(callButton).join(""):"No scheduled calls.";
+ $("completedCallList").innerHTML=completed.length?completed.slice(0,5).map(callButton).join(""):"No completed calls.";
  document.querySelectorAll("[data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
- $("upcoming").innerHTML=a.filter(c=>c.status==="Scheduled"&&c.date>=new Date().toISOString().slice(0,10)).slice(0,8).map(callButton).join("")||"None.";
+ const today=new Date().toISOString().slice(0,10);
+ $("upcoming").innerHTML=scheduled.filter(c=>c.date>=today).slice(0,8).map(callButton).join("")||"None.";
  document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
 }
 let calendarMode="list";
@@ -1466,5 +1470,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.27</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.28</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
