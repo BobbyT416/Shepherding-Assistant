@@ -761,6 +761,7 @@ textarea.publisher-address-field{
 #dashboard .dashboard-section-card.attention-card h3:after{content:"Follow-up"}
 #dashboard .dashboard-section-card.upcoming-card h3:after{content:"Next visits"}
 #dashboard .attention-item{padding:9px 0}
+#dashboard .attention-link{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
 #dashboard .attention-item + .attention-item{border-top:1px solid #eef0f3}
 @media(max-width:700px){
   #dashboard{padding-left:14px;padding-right:14px}
@@ -789,7 +790,7 @@ textarea.publisher-address-field{
 </header>
 <nav>
 <button data-page="dashboard">Dashboard</button><button data-page="publishers">Publishers</button>
-<button data-page="shepherding">Shepherding</button><button data-page="calendar">Calendar</button>
+<button data-page="calendar">Calendar</button>
 <button data-page="group">Group Setup</button><button data-page="settings">Settings</button>
 </nav>
 
@@ -826,11 +827,6 @@ textarea.publisher-address-field{
 <div class="card publishers-table-card"><table class="publisher-directory-table"><thead><tr><th>Publisher</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
 </section>
 
-<section id="shepherding" class="page">
-<h2>Shepherding</h2><button id="scheduleCall">+ Schedule Shepherding Call</button>
-<div class="card shepherding-calls-card"><h3>Scheduled Calls</h3><div id="scheduledCallList">No scheduled calls.</div></div>
-<div class="card shepherding-calls-card completed-calls-card"><h3>Completed Calls</h3><div id="completedCallList">No completed calls.</div></div>
-</section>
 
 <section id="calendar" class="page">
 <h2>Shepherding Calendar</h2>
@@ -1091,10 +1087,6 @@ function formatCallDateTime(c){
 function callButton(c){return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+'</button>'}
 function renderCalls(){
  const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
- const completed=[...db.calls].filter(c=>c.status==="Completed").sort((x,y)=>(y.date+y.time).localeCompare(x.date+x.time));
- $("scheduledCallList").innerHTML=scheduled.length?scheduled.map(callButton).join(""):"No scheduled calls.";
- $("completedCallList").innerHTML=completed.length?completed.slice(0,5).map(callButton).join(""):"No completed calls.";
- document.querySelectorAll("[data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  const today=new Date().toISOString().slice(0,10);
  $("upcoming").innerHTML=scheduled.filter(c=>c.date>=today).slice(0,8).map(callButton).join("")||"None.";
  document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
@@ -1327,7 +1319,6 @@ $("addPublisher").onclick=()=>{
    closeModal();persist();
  };
 };
-$("scheduleCall").onclick=()=>openScheduleCall();
 function showHistory(publisherId){
  const p=db.publishers.find(x=>x.id===publisherId);if(!p)return;
  const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
@@ -1484,5 +1475,5 @@ $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this devi
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.29</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.34.30</span></div><div class="copyright">All group information is stored locally on this device.</div></footer></body>
 </html>
