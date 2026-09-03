@@ -1,14 +1,7 @@
-SHEPHERDING ASSISTANT V2.34.21
+Shepherding Assistant V2.34.22
 
-Based directly on working V2.34.20.
-
-CHANGE:
-Updated the backup instructions to make the iPhone workflow clearer:
-- Choose Save to Files.
-- If iOS opens directly to a phone folder, tap Browse.
-- Browse shows enabled storage Locations such as OneDrive, iCloud Drive,
-  Google Drive, or Dropbox.
-
-No application behavior, database structure, or group data was changed.
-
-Replace ONLY index.html.
+Changes from V2.34.21:
+- Simplified Transfer / Backup to one Save / Share Backup option plus Import Group Data.
+- Removed the separate Export Group Data button. Save / Share Backup can still save to a local computer folder through the browser's save/file picker when supported, or use the browser's normal download fallback.
+- Added an Include Notes in Backup slider. It is OFF by default for privacy. When OFF, publisher notes and shepherding-visit notes are excluded from the backup file. Notes remain unchanged on the current device.
+- Existing group data, localStorage key, and import format remain unchanged.
