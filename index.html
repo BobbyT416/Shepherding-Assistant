@@ -1010,27 +1010,17 @@ function isCancelledCall(c){
 function syncPublisherLast(publisherId){
  const p=db.publishers.find(x=>x.id===publisherId);
  if(!p)return;
- const related=db.calls.filter(c=>c.publisherId===publisherId);
- const completed=related.filter(c=>String(c.status||"").trim().toLowerCase()==="completed"&&c.date).sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||"")));
- if(completed.length){
-   // The last-contact date is always the most recent completed call.
-   p.last=completed[0].date;
- }else if(related.some(isCancelledCall)){
-   // A cancelled/canceled visit must never leave a stale contact date behind.
-   p.last="";
- }
+ const completed=db.calls.filter(c=>c.publisherId===publisherId&&String(c.status||"").trim().toLowerCase()==="completed"&&c.date).sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||"")));
+ // Last Shepherding Contact is derived exclusively from completed history.
+ // If there is no completed history, there is no last-contact date.
+ p.last=completed.length?completed[0].date:"";
 }
 function syncAllPublisherLast(){
  (db.publishers||[]).forEach(p=>{
-   const related=db.calls.filter(c=>c.publisherId===p.id);
-   const completed=related.filter(c=>String(c.status||"").trim().toLowerCase()==="completed"&&c.date).sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||"")));
-   if(completed.length){
-     // Derive the date from completed call history.
-     p.last=completed[0].date;
-   }else if(related.some(isCancelledCall)){
-     // A cancelled/canceled visit must never leave a stale contact date behind.
-     p.last="";
-   }
+   const completed=db.calls.filter(c=>c.publisherId===p.id&&String(c.status||"").trim().toLowerCase()==="completed"&&c.date).sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||"")));
+   // Always derive the field from completed history. This also repairs older
+   // records that retained a stale manual/contact date after a visit was cancelled.
+   p.last=completed.length?completed[0].date:"";
  });
 }
 function status(p){
@@ -1669,5 +1659,5 @@ initCloud();
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.35.2</span></div><div class="copyright">Group information remains stored locally unless you explicitly upload it to your connected Supabase account.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.35.3</span></div><div class="copyright">Group information remains stored locally unless you explicitly upload it to your connected Supabase account.</div></footer></body>
 </html>
