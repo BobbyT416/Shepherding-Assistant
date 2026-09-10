@@ -730,11 +730,11 @@ textarea.publisher-address-field{
 /* V2.34.9 — Dashboard Needs Attention: clean last-name-first alphabetical list */
 
 /* V2.34.26 — Publishers status-dot contrast/size polish only; no behavior/data changes */
-#dashboard .dashboard-group-card{display:flex;align-items:center;gap:18px;}
-#dashboard .dashboard-group-content{min-width:0;flex:1;}
-#dashboard .dashboard-status-key-column{flex:0 0 auto;display:flex;align-items:center;}
-#dashboard .dashboard-status-key{margin-left:0;}
-@media(max-width:560px){#dashboard .dashboard-group-card{gap:10px;}#dashboard .dashboard-status-key{font-size:.72rem;gap:4px;}#dashboard .dashboard-status-key span{gap:5px;}}
+#dashboard .dashboard-group-card{position:relative;display:block;padding-right:17px;}
+#dashboard .dashboard-group-content{min-width:0;padding-right:0;}
+#dashboard .dashboard-status-key-column{position:absolute;top:15px;right:17px;display:flex;align-items:flex-start;}
+#dashboard .dashboard-status-key{margin:0;width:max-content;font-size:.72rem;line-height:1.1;gap:6px;}
+@media(max-width:560px){#dashboard .dashboard-group-card{padding-right:15px;}#dashboard .dashboard-status-key-column{top:14px;right:15px;}#dashboard .dashboard-status-key{font-size:.68rem;gap:5px;}#dashboard .dashboard-status-key span{gap:4px;}}
 
 #dashboard .dashboard-intro{
   position:relative;
@@ -762,18 +762,6 @@ textarea.publisher-address-field{
   margin:0 0 8px;
   font-size:18px;
 }
-#dashboard .dashboard-section-card h3:after{
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:.03em;
-  color:#7a8492;
-  background:#f1f3f6;
-  border-radius:999px;
-  padding:4px 7px;
-  white-space:nowrap;
-}
-#dashboard .dashboard-section-card.attention-card h3:after{content:"Follow-up"}
-#dashboard .dashboard-section-card.upcoming-card h3:after{content:"Next visits"}
 #dashboard .attention-item{padding:9px 0}
 #dashboard .attention-link{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
 #dashboard .attention-item + .attention-item{border-top:1px solid #eef0f3}
@@ -781,7 +769,6 @@ textarea.publisher-address-field{
   #dashboard{padding-left:14px;padding-right:14px}
   #dashboard .dashboard-section-card{padding:14px 15px}
   #dashboard .dashboard-section-card h3{font-size:17px}
-  #dashboard .dashboard-section-card h3:after{font-size:10px;padding:3px 6px}
 }
 </style>
 
@@ -813,8 +800,7 @@ textarea.publisher-address-field{
 <div class="card dashboard-intro dashboard-group-card"><div class="dashboard-group-content"><h3>Field Service Group</h3>
 <p><b id="dashGroup">Not configured</b></p>
 <p>Group Overseer: <b id="dashOverseer">Not configured</b><br>Assistant: <b id="dashAssistant">Not configured</b></p></div><div class="dashboard-status-key-column">
-<div class="publisher-status-key dashboard-status-key" aria-label="Publisher status key">
-<span><i class="publisher-key-dot current"></i>Up to date</span>
+<div class="publisher-status-key dashboard-status-key" aria-label="Dashboard status key">
 <span><i class="publisher-key-dot attention"></i>Needs attention</span>
 <span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
 </div></div></div>
@@ -1659,5 +1645,5 @@ initCloud();
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.35.3</span></div><div class="copyright">Group information remains stored locally unless you explicitly upload it to your connected Supabase account.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.35.4</span></div><div class="copyright">Group information remains stored locally unless you explicitly upload it to your connected Supabase account.</div></footer></body>
 </html>
