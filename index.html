@@ -974,8 +974,12 @@ function uid(){return (crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()
 function people(){
  return [...new Set([...db.publishers.map(p=>p.name),...(db.group.elders||[])].filter(Boolean))]
 }
-function personOptions(selected=""){
- return '<option value="">— Select —</option>'+people().map(n=>'<option value="'+esc(n)+'"'+(n===selected?' selected':'')+'>'+esc(n)+'</option>').join("")
+function groupLeaderOptions(selected=""){
+ const eligible=[...new Set((db.publishers||[]).filter(p=>{
+   const role=(p.role||"").trim().toLowerCase();
+   return role==="elder" || role==="ministerial servant";
+ }).map(p=>p.name).filter(Boolean))];
+ return '<option value="">— Select —</option>'+eligible.map(n=>'<option value="'+esc(n)+'"'+(n===selected?' selected':'')+'>'+esc(n)+'</option>').join("")
 }
 function shepherdingBrotherOptions(selected=""){
  const eligible=(db.publishers||[]).filter(p=>{
@@ -1025,8 +1029,8 @@ function renderGroup(){
  $("dashOverseer").textContent=db.group.overseer||"Not configured";
  $("dashAssistant").textContent=db.group.assistant||"Not configured";
  $("groupName").value=db.group.name;
- $("groupOverseer").innerHTML=personOptions(db.group.overseer);
- $("groupAssistant").innerHTML=personOptions(db.group.assistant);
+ $("groupOverseer").innerHTML=groupLeaderOptions(db.group.overseer);
+ $("groupAssistant").innerHTML=groupLeaderOptions(db.group.assistant);
  $("reminderMonths").value=db.reminderMonths;
  $("elderList").innerHTML=(db.group.elders||[]).map((n,i)=>'<p>'+esc(n)+' <button class="secondary" data-remove-elder="'+i+'">Remove</button></p>').join("")||'<p class="small">No other elders added.</p>';
  const elderChoices=db.publishers.filter(p=>p.role==="Elder").map(p=>p.name).filter(n=>n!==db.group.overseer&&n!==db.group.assistant&&!db.group.elders.includes(n));
@@ -1645,5 +1649,5 @@ initCloud();
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.35.4</span></div><div class="copyright">Group information remains stored locally unless you explicitly upload it to your connected Supabase account.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.35.5</span></div><div class="copyright">Group information remains stored locally unless you explicitly upload it to your connected Supabase account.</div></footer></body>
 </html>
