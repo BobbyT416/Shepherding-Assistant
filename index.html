@@ -792,7 +792,7 @@ textarea.publisher-address-field{
 <nav>
 <button data-page="dashboard">Dashboard</button><button data-page="publishers">Publishers</button>
 <button data-page="calendar">Calendar</button>
-<button data-page="group">Group Setup</button><button data-page="settings">Settings</button>
+<button data-page="group">Group Setup</button><button data-page="access">Group Access</button><button data-page="settings">Settings</button>
 </nav>
 
 <section id="dashboard" class="page active">
@@ -853,6 +853,22 @@ textarea.publisher-address-field{
 <div class="card"><h3>Other Elders</h3><div id="elderList"></div>
 <div class="row"><select id="elderSelect"></select><button id="addElder" class="secondary">Add Selected Elder</button></div>
 <p class="small">Add elders by selecting them from publishers whose role is Elder. The Group Overseer and Assistant are excluded from this list.</p></div>
+</section>
+
+<section id="access" class="page">
+<h2>Group Access</h2>
+<div class="card">
+<h3>Authorized Members</h3>
+<p class="small">Only Full-access members can manage who has access to this group. Disabling access keeps the membership record for historical activity.</p>
+<div id="accessMemberList"><p class="small">Sign in and select an active shared group to manage access.</p></div>
+</div>
+<div class="card" id="accessAddCard">
+<h3>Add Group Member</h3>
+<p class="small">Enter the email address used for the person's Supabase account. The account must already exist.</p>
+<div class="row"><div><label>Account Email</label><input id="accessEmail" type="email" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="elder@example.com"></div><div><label>Role</label><select id="accessRole"><option value="Elder">Elder</option><option value="Ministerial Servant">Ministerial Servant</option></select></div></div>
+<div class="row"><div><label>Permission</label><select id="accessPermission"><option value="Full">Full access</option><option value="Read">Read only</option></select></div><div></div></div>
+<button id="addAccessMember">Add Member</button>
+</div>
 </section>
 
 <section id="settings" class="page">
@@ -1502,6 +1518,72 @@ $("addElder").onclick=()=>{const n=$("elderSelect").value;if(!n)return;db.group.
 $("calendarMonth").onchange=renderCalendar;$("prevMonth").onclick=()=>shiftCalendarMonth(-1);$("nextMonth").onclick=()=>shiftCalendarMonth(1);$("listViewBtn").onclick=()=>{calendarMode="list";renderCalendar()};$("monthViewBtn").onclick=()=>{calendarMode="calendar";renderCalendar()};
 $("reminderMonths").onchange=()=>{db.reminderMonths=Math.max(1,Number($("reminderMonths").value)||3);persist()};
 
+async function refreshGroupAccessUI(){
+ const list=$("accessMemberList"), addCard=$("accessAddCard");
+ if(!list)return;
+ if(!sb||!cloudUser||!sharedGroup||!sharedMembership){
+   list.innerHTML='<p class="small">Sign in and load your shared group access first.</p>';
+   if(addCard)addCard.style.display="none";
+   return;
+ }
+ const full=String(sharedMembership.permission_level||"").toLowerCase()==="full";
+ if(addCard)addCard.style.display=full?"block":"none";
+ try{
+   const {data,error}=await sb.from("group_members").select("user_id,access_enabled,member_role,permission_level,created_at").eq("group_id",sharedGroup.id).order("created_at",{ascending:true});
+   if(error)throw error;
+   if(!data||!data.length){list.innerHTML='<p class="small">No members found.</p>';return;}
+   list.innerHTML=data.map(m=>{
+     const me=m.user_id===cloudUser.id;
+     const label=me?(cloudUser.email||"Current account"):"Supabase account";
+     const status=m.access_enabled?"Enabled":"Disabled";
+     const perm=String(m.permission_level||"").toLowerCase()==="full"?"Full access":"Read only";
+     const disabled=!full || me;
+     return '<div class="access-member" style="padding:10px 0;border-top:1px solid #ddd">'+
+       '<b>'+esc(label)+'</b><br><span class="small">'+esc(m.member_role||"Publisher")+' • '+esc(perm)+' • '+esc(status)+'</span>'+
+       (full?'<div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'" '+(disabled?'disabled':'')+'>'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
+       '</div>';
+   }).join("");
+   document.querySelectorAll("[data-toggle-access]").forEach(b=>b.onclick=()=>toggleGroupAccess(b.dataset.toggleAccess,b.dataset.enabled!=="true"));
+ }catch(err){
+   list.innerHTML='<p class="small">Unable to load group members: '+esc(err?.message||err)+'</p>';
+ }
+}
+async function toggleGroupAccess(userId,enabled){
+ if(!sb||!cloudUser||!sharedGroup||!sharedMembership)return;
+ if(String(sharedMembership.permission_level||"").toLowerCase()!=="full"){alert("Only Full-access members can manage group access.");return}
+ if(userId===cloudUser.id){alert("Your own access cannot be disabled here.");return}
+ const action=enabled?"enable":"disable";
+ if(!confirm((enabled?"Enable":"Disable")+" access for this group member?"))return;
+ const {error}=await sb.from("group_members").update({access_enabled:enabled}).eq("group_id",sharedGroup.id).eq("user_id",userId);
+ if(error){alert("Unable to "+action+" access: "+error.message);return}
+ await refreshGroupAccessUI();
+}
+async function addGroupAccessMember(){
+ if(!sb||!cloudUser||!sharedGroup||!sharedMembership){alert("Connect and sign in to the shared group first.");return}
+ if(String(sharedMembership.permission_level||"").toLowerCase()!=="full"){alert("Only Full-access members can add group members.");return}
+ const email=$("accessEmail").value.trim();
+ const role=$("accessRole").value;
+ const permission=$("accessPermission").value;
+ if(!email){alert("Enter the person's Supabase account email.");return}
+ const {data:found,error:findError}=await sb.rpc("find_group_user_by_email",{p_group_id:sharedGroup.id,p_email:email});
+ if(findError){alert("Unable to find that Supabase account: "+findError.message);return}
+ const user=Array.isArray(found)?found[0]:found;
+ if(!user?.user_id){alert("No Supabase account was found with that email address. They need to create their account first.");return}
+ if(user.user_id===cloudUser.id){alert("Your account is already the current group member.");return}
+ const {data:existing,error:existingError}=await sb.from("group_members").select("user_id,access_enabled").eq("group_id",sharedGroup.id).eq("user_id",user.user_id).maybeSingle();
+ if(existingError){alert("Unable to check existing group access: "+existingError.message);return}
+ if(existing){
+   const {error}=await sb.from("group_members").update({access_enabled:true,member_role:role,permission_level:permission}).eq("group_id",sharedGroup.id).eq("user_id",user.user_id);
+   if(error){alert("Unable to update this member: "+error.message);return}
+   alert("This account was already a member. Its access has been enabled and updated.");
+ }else{
+   const {error}=await sb.from("group_members").insert({group_id:sharedGroup.id,user_id:user.user_id,access_enabled:true,member_role:role,permission_level:permission});
+   if(error){alert("Unable to add this member: "+error.message);return}
+   alert("Group member added successfully.");
+ }
+ $("accessEmail").value="";
+ await refreshGroupAccessUI();
+}
 function loadCloudConfig(){
  try{return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY)||"null")}catch(e){return null}
 }
@@ -1571,6 +1653,7 @@ async function refreshSharedMembership(){
    if(!members||!members.length){
      if(status)status.textContent="No active group membership";
      $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
+     await refreshGroupAccessUI();
      return;
    }
    const groupIds=[...new Set(members.map(m=>m.group_id).filter(Boolean))];
@@ -1583,11 +1666,13 @@ async function refreshSharedMembership(){
    if(status)status.textContent=g.name+(groupIds.length>1?" (first active group)":"")+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
    $("loadSharedData").disabled=false;
    $("saveSharedData").disabled=String(first.permission_level||"").toLowerCase()!=="full";
+   await refreshGroupAccessUI();
  }catch(err){
    sharedMembership=null;sharedGroup=null;
    if(status)status.textContent="Unable to check group access";
    $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
    console.error(err);
+   await refreshGroupAccessUI();
  }
 }
 async function loadSharedGroupData(){
@@ -1737,5 +1822,5 @@ initCloud();
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.0</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.1</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
