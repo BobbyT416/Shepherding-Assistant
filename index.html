@@ -785,7 +785,7 @@ textarea.publisher-address-field{
     <img src="shepherding-app-icon.png" alt="Shepherding Assistant">
     <div class="header-brand-text">
       <h1>Shepherding Assistant</h1>
-      <div id="headerGroup">One Field Service Group • Local Only</div>
+      <div id="headerGroup">One Field Service Group • Local / Shared Cloud</div>
     </div>
   </div>
 </header>
@@ -856,11 +856,11 @@ textarea.publisher-address-field{
 </section>
 
 <section id="settings" class="page">
-<h2>Settings & Local & Cloud Data</h2><div class="card"><b>Storage status:</b> <span id="storageStatus">Local data active</span></div>
+<h2>Settings & Local & Shared Cloud Data</h2><div class="card"><b>Storage status:</b> <span id="storageStatus">Local data active</span></div>
 <div class="card"><label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
 <p class="small">A publisher is flagged when the last completed shepherding call is older than this interval.</p></div>
 <div class="card">
-<h3>Cloud Sync (Supabase)</h3>
+<h3>Shared Cloud (Supabase)</h3>
 <p class="small">Cloud sync is optional. Your existing local data remains on this device until you explicitly upload or download it. The publishable key is safe for browser use; never enter a secret/service-role key here.</p>
 <div class="row"><div><label>Supabase Project URL</label><input id="supabaseUrl" type="url" placeholder="https://your-project.supabase.co" autocomplete="off"></div><div><label>Supabase Publishable Key</label><input id="supabaseKey" type="password" placeholder="sb_publishable_..." autocomplete="off"></div></div>
 <div class="actions"><button id="connectSupabase">Connect</button><button id="disconnectSupabase" class="secondary">Disconnect</button></div>
@@ -871,8 +871,9 @@ textarea.publisher-address-field{
 <div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
 </div>
 <div id="cloudDataActions" style="display:none">
-<div class="actions"><button id="uploadCloud">Upload Local Data to Cloud</button><button id="downloadCloud" class="secondary">Download Cloud Data</button></div>
-<p class="small">For the first migration, use <b>Upload Local Data to Cloud</b> only after you are sure this device contains the data you want in the cloud. Downloading replaces this device's current local group data after confirmation.</p>
+<p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
+<div class="actions"><button id="loadSharedData" class="secondary">Load Shared Group Data</button><button id="saveSharedData">Save Changes to Shared Group</button></div>
+<p class="small">Shared group data is stored in the group's cloud record. Loading replaces this device's current local group data after confirmation. Saving sends this device's current group data to the shared group.</p>
 </div>
 </div>
 <div class="card"><h3>Transfer / Backup</h3>
@@ -896,6 +897,8 @@ const DATA_KEY="shepherding_assistant_group_v2";
 const CLOUD_CONFIG_KEY="shepherding_assistant_supabase_config_v1";
 let sb=null;
 let cloudUser=null;
+let sharedMembership=null;
+let sharedGroup=null;
 let returnToDashboardAfterCallEdit=false;
 let db=loadData();
 
@@ -1128,7 +1131,15 @@ function formatCallDateTime(c){
  const time=d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
  return day+", "+date+" at "+time;
 }
-function callButton(c){return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+'</button>'}
+function currentUserDisplayName(){
+ if(!cloudUser)return "";
+ const meta=cloudUser.user_metadata||{};
+ return String(meta.full_name||meta.name||cloudUser.email||"Cloud user").trim();
+}
+function callButton(c){
+ const attribution=c.scheduledBy?' <div class="small" style="margin-top:4px">Scheduled by: '+esc(c.scheduledBy)+'</div>':'';
+ return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+attribution+'</button>';
+}
 function renderCalls(){
  const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
  const today=new Date().toISOString().slice(0,10);
@@ -1298,7 +1309,7 @@ function openScheduleCall(publisherId="",initialDate="",returnVisit=false){
    const b1=$("cB1").value,b2=$("cB2").value;
    if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
    const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
-   db.calls.push({id:uid(),publisherId:p.id,name:p.name,date:$("cDate").value,time:$("cTime").value,brother1:b1,brother2:b2,type:$("cType").value,notes:$("cNotes").value,status:"Scheduled",wholeFamily});
+   db.calls.push({id:uid(),publisherId:p.id,name:p.name,date:$("cDate").value,time:$("cTime").value,brother1:b1,brother2:b2,type:$("cType").value,notes:$("cNotes").value,status:"Scheduled",wholeFamily,scheduledBy:currentUserDisplayName()});
    closeModal();persist();
  };
 }
@@ -1424,7 +1435,7 @@ function editCall(id,fromCalendar=false){
  returnToDashboardAfterCallEdit=!!fromCalendar;
  const c=db.calls.find(x=>x.id===id);if(!c)return;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
- openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select>'+visitScopeOptions(!!c.wholeFamily)+'<div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+shepherdingBrotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+shepherdingBrotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes||"")+'</textarea><div class="actions"><button id="updateCall">Save Changes</button><button id="cancelVisit" class="danger" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Cancel Visit</button><button id="deleteCall" class="danger" style="display:'+(c.status!=="Scheduled"?'inline-block':'none')+'">Delete Visit</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
+ openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select>'+visitScopeOptions(!!c.wholeFamily)+'<div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+shepherdingBrotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+shepherdingBrotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes||"")+'</textarea>'+(c.scheduledBy?'<p class="small" style="margin:10px 0 0"><b>Scheduled by:</b> '+esc(c.scheduledBy)+'</p>':'')+'<div class="actions"><button id="updateCall">Save Changes</button><button id="cancelVisit" class="danger" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Cancel Visit</button><button id="deleteCall" class="danger" style="display:'+(c.status!=="Scheduled"?'inline-block':'none')+'">Delete Visit</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
  $("cancelEdit").onclick=()=>{
   closeModal();
   if(returnToDashboardAfterCallEdit){
@@ -1549,22 +1560,97 @@ async function cloudSignUp(){
 async function cloudSignOut(){
  if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();
 }
-async function uploadCloud(){
- if(!sb||!cloudUser){alert("Sign in to your cloud account first.");return}
- if(!confirm("Upload the current group data from this device to the cloud? This will replace the cloud copy for your account."))return;
- const {error}=await sb.from("group_data").upsert({owner_id:cloudUser.id,data:db,updated_at:new Date().toISOString()},{onConflict:"owner_id"});
- if(error){alert("Cloud upload failed: "+error.message);return}
- setCloudStatus("Connected — cloud data saved");alert("Group data uploaded to Supabase successfully.");
+async function refreshSharedMembership(){
+ sharedMembership=null;sharedGroup=null;
+ const status=$("sharedGroupStatus");
+ if(status)status.textContent="Checking group access…";
+ if(!sb||!cloudUser){return}
+ try{
+   const {data:members,error:memberError}=await sb.from("group_members").select("group_id,access_enabled,member_role,permission_level").eq("user_id",cloudUser.id).eq("access_enabled",true);
+   if(memberError)throw memberError;
+   if(!members||!members.length){
+     if(status)status.textContent="No active group membership";
+     $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
+     return;
+   }
+   const groupIds=[...new Set(members.map(m=>m.group_id).filter(Boolean))];
+   const {data:groups,error:groupError}=await sb.from("groups").select("id,name").in("id",groupIds);
+   if(groupError)throw groupError;
+   const first=members[0];
+   const g=(groups||[]).find(x=>x.id===first.group_id);
+   if(!g)throw Error("Your group membership was found, but the group record could not be loaded.");
+   sharedMembership=first;sharedGroup=g;
+   if(status)status.textContent=g.name+(groupIds.length>1?" (first active group)":"")+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
+   $("loadSharedData").disabled=false;
+   $("saveSharedData").disabled=String(first.permission_level||"").toLowerCase()!=="full";
+ }catch(err){
+   sharedMembership=null;sharedGroup=null;
+   if(status)status.textContent="Unable to check group access";
+   $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
+   console.error(err);
+ }
 }
-async function downloadCloud(){
+async function loadSharedGroupData(){
  if(!sb||!cloudUser){alert("Sign in to your cloud account first.");return}
- const {data,error}=await sb.from("group_data").select("data,updated_at").eq("owner_id",cloudUser.id).maybeSingle();
- if(error){alert("Cloud download failed: "+error.message);return}
- if(!data?.data){alert("No cloud group data was found for this account.");return}
+ if(!sharedMembership||!sharedGroup){await refreshSharedMembership()}
+ if(!sharedMembership||!sharedGroup){alert("No active shared group membership was found for this account.");return}
+ const {data,error}=await sb.from("group_data_shared").select("data,updated_at").eq("group_id",sharedGroup.id).maybeSingle();
+ if(error){alert("Shared group download failed: "+error.message);return}
+ if(!data?.data){alert("No shared group data was found for this group.");return}
  const x=data.data;
- if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls)){alert("The cloud data is not a valid Shepherding Assistant V2 record.");return}
- if(!confirm("Replace this device's current group data with the cloud copy? This does not change the cloud copy."))return;
- db=x;persist();setCloudStatus("Connected — cloud data loaded");alert("Cloud group data downloaded successfully.");
+ if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls)){alert("The shared data is not a valid Shepherding Assistant V2 record.");return}
+ if(!confirm("Replace this device's current group data with the shared group copy? This does not change the shared copy."))return;
+ db=x;persist();setCloudStatus("Connected — shared group data loaded");alert("Shared group data loaded successfully.");
+}
+async function saveSharedGroupData(){
+ if(!sb||!cloudUser){alert("Sign in to your cloud account first.");return}
+ if(!sharedMembership||!sharedGroup){await refreshSharedMembership()}
+ if(!sharedMembership||!sharedGroup){alert("No active shared group membership was found for this account.");return}
+ if(String(sharedMembership.permission_level||"").toLowerCase()!=="full"){alert("Your account has read-only access to this group.");return}
+ if(!confirm("Save this device's current group data to the shared group? This will replace the shared group's current copy."))return;
+ const {error}=await sb.from("group_data_shared").upsert({group_id:sharedGroup.id,data:db,updated_at:new Date().toISOString()},{onConflict:"group_id"});
+ if(error){alert("Shared group save failed: "+error.message);return}
+ setCloudStatus("Connected — shared group data saved");alert("Changes saved to the shared group successfully.");
+}
+async function connectSupabase(){
+ const url=$("supabaseUrl").value.trim(),key=$("supabaseKey").value.trim();
+ if(!url||!key){alert("Enter the Supabase Project URL and Publishable Key.");return}
+ if(!window.supabase||!window.supabase.createClient){alert("The Supabase library could not be loaded. Check your internet connection and try again.");return}
+ try{
+   sb=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+   saveCloudConfig(url,key);
+   const {data,error}=await sb.auth.getSession();
+   if(error)throw error;
+   cloudUser=data.session?.user||null;
+   setCloudStatus("Connected");
+   updateCloudUI();
+   if(cloudUser)await refreshSharedMembership();
+ }catch(err){sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;setCloudStatus("Connection failed");updateCloudUI();alert("Supabase connection failed: "+(err?.message||err));}
+}
+async function disconnectSupabase(){
+ if(sb){try{await sb.auth.signOut()}catch(e){}}
+ sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;localStorage.removeItem(CLOUD_CONFIG_KEY);$("supabaseKey").value="";setCloudStatus("Not connected");updateCloudUI();
+}
+async function cloudSignIn(){
+ if(!sb){alert("Connect to Supabase first.");return}
+ const email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;
+ if(!email||!password){alert("Enter your email and password.");return}
+ const {data,error}=await sb.auth.signInWithPassword({email,password});
+ if(error){alert("Sign in failed: "+error.message);return}
+ cloudUser=data.user;setCloudStatus("Connected");updateCloudUI();await refreshSharedMembership();alert("Signed in successfully.");
+}
+async function cloudSignUp(){
+ if(!sb){alert("Connect to Supabase first.");return}
+ const email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;
+ if(!email||!password){alert("Enter an email and password.");return}
+ if(password.length<6){alert("Supabase requires a password of at least 6 characters.");return}
+ const {data,error}=await sb.auth.signUp({email,password});
+ if(error){alert("Account creation failed: "+error.message);return}
+ if(data.session){cloudUser=data.user;setCloudStatus("Connected");updateCloudUI();await refreshSharedMembership();alert("Cloud account created and signed in.");}
+ else{alert("Account created. Check your email to confirm the account, then return here and sign in.");}
+}
+async function cloudSignOut(){
+ if(sb)await sb.auth.signOut();cloudUser=null;sharedMembership=null;sharedGroup=null;updateCloudUI();
 }
 function initCloud(){
  const cfg=loadCloudConfig();
@@ -1574,8 +1660,10 @@ function initCloud(){
  $("cloudSignIn").onclick=cloudSignIn;
  $("cloudSignUp").onclick=cloudSignUp;
  $("cloudSignOut").onclick=cloudSignOut;
- $("uploadCloud").onclick=uploadCloud;
- $("downloadCloud").onclick=downloadCloud;
+ $("loadSharedData").onclick=loadSharedGroupData;
+ $("saveSharedData").onclick=saveSharedGroupData;
+ $("loadSharedData").disabled=true;
+ $("saveSharedData").disabled=true;
 }
 
 function backupFile(){
@@ -1649,5 +1737,5 @@ initCloud();
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.35.5</span></div><div class="copyright">Group information remains stored locally unless you explicitly upload it to your connected Supabase account.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.0</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
