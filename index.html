@@ -1048,7 +1048,7 @@ function status(p){
  const months=(Date.now()-new Date(p.last+"T12:00:00"))/86400000/30.44;
  return months>=Number(db.reminderMonths)?["over","Overdue"]:months>=Number(db.reminderMonths)-.5?["soon","Due Soon"]:["ok","Up to Date"];
 }
-function show(page){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(page).classList.add("active")}
+function show(page){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(page).classList.add("active");if(typeof applyLocalEditPermissions==="function")applyLocalEditPermissions()}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
  show(b.dataset.page)
 }));
@@ -1944,5 +1944,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.9</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.10</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
