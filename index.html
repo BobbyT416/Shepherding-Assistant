@@ -896,6 +896,7 @@ textarea.publisher-address-field{
 <p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
 <div class="actions"><button id="loadSharedData" class="secondary">Load Shared Group Data</button><button id="saveSharedData">Save Changes to Shared Group</button></div>
 <p id="sharedAccessHelp" class="small">Shared group data is stored in the group's cloud record. Loading replaces this device's current group data after confirmation. Saving sends this device's current group data to the shared group.</p>
+<p id="sharedSaveNotice" class="small" style="margin-top:6px"></p>
 </div>
 </div>
 <div class="card"><h3>Transfer / Backup</h3>
@@ -1703,6 +1704,7 @@ async function refreshSharedMembership(){
      if(status)status.textContent="No active group membership — shared data access is disabled";
      $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
      const help=$("sharedAccessHelp"); if(help)help.textContent="Your account is signed in, but it is not currently authorized for an active shared group. Ask a Full-access group member to enable your access.";
+     const notice=$("sharedSaveNotice"); if(notice)notice.textContent="Shared-group saving is unavailable until an active membership is restored.";
      await refreshGroupAccessUI();
      return;
    }
@@ -1716,13 +1718,17 @@ async function refreshSharedMembership(){
    if(status)status.textContent=g.name+(groupIds.length>1?" (first active group)":"")+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
    $("loadSharedData").disabled=false;
    $("saveSharedData").disabled=String(first.permission_level||"").toLowerCase()!=="full";
-   const help=$("sharedAccessHelp"); if(help)help.textContent=String(first.permission_level||"").toLowerCase()==="full"?"You have Full access. You can load shared data and save changes to the shared group.":"You have Read-only access. You can load shared data, but you cannot save changes to the shared group.";
+   const isFull=String(first.permission_level||"").toLowerCase()==="full";
+   const help=$("sharedAccessHelp"); if(help)help.textContent=isFull?"You have Full access. You can load shared data and save changes to the shared group.":"You have Read-only access. You can load shared data, but you cannot save changes to the shared group.";
+   const saveBtn=$("saveSharedData"); if(saveBtn){saveBtn.title=isFull?"Save this device's current group data to the shared group.":"Read-only access: saving changes to the shared group is not available.";}
+   const notice=$("sharedSaveNotice"); if(notice)notice.textContent=isFull?"":"Saving is unavailable because this account has Read-only access. A Full-access member can change the permission.";
    await refreshGroupAccessUI();
  }catch(err){
    sharedMembership=null;sharedGroup=null;
    if(status)status.textContent="Unable to check group access";
    $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
    const help=$("sharedAccessHelp"); if(help)help.textContent="The app could not verify your shared-group access. Check your connection or ask a Full-access group member to verify your membership.";
+   const notice=$("sharedSaveNotice"); if(notice)notice.textContent="Shared-group saving is unavailable until access can be verified.";
    console.error(err);
    await refreshGroupAccessUI();
  }
@@ -1898,5 +1904,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.6</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.7</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
