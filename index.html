@@ -1048,8 +1048,27 @@ function status(p){
  const months=(Date.now()-new Date(p.last+"T12:00:00"))/86400000/30.44;
  return months>=Number(db.reminderMonths)?["over","Overdue"]:months>=Number(db.reminderMonths)-.5?["soon","Due Soon"]:["ok","Up to Date"];
 }
-function show(page){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(page).classList.add("active");if(typeof applyLocalEditPermissions==="function")applyLocalEditPermissions()}
+function show(page){
+ if(cloudUser && !sharedMembership && page!=="settings"){
+   page="settings";
+   const status=$("sharedGroupStatus");
+   if(status)status.scrollIntoView({behavior:"smooth",block:"center"});
+ }
+ document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+ $(page).classList.add("active");
+ if(typeof applyLocalEditPermissions==="function")applyLocalEditPermissions();
+ if(typeof applyCloudAccessNavigation==="function")applyCloudAccessNavigation();
+}
+function applyCloudAccessNavigation(){
+ const locked=!!(cloudUser && !sharedMembership);
+ document.querySelectorAll("nav button").forEach(b=>{
+   const isSettings=b.dataset.page==="settings";
+   b.disabled=locked && !isSettings;
+   b.title=locked && !isSettings?"Shared-group access is disabled for this account.":"";
+ });
+}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
+ if(b.disabled)return;
  show(b.dataset.page)
 }));
 
@@ -1571,8 +1590,13 @@ async function refreshGroupAccessUI(){
  const list=$("accessMemberList"), addCard=$("accessAddCard");
  if(!list)return;
  if(!sb||!cloudUser||!sharedGroup||!sharedMembership){
-   list.innerHTML='<p class="small">Sign in and load your shared group access first.</p>';
+   if(cloudUser && !sharedMembership){
+     list.innerHTML='<p class="small"><b>Access disabled</b><br>Your account is signed in, but it is not currently an active member of this group. Group Access is available only to active Full-access members.</p>';
+   }else{
+     list.innerHTML='<p class="small">Sign in and load your shared group access first.</p>';
+   }
    if(addCard)addCard.style.display="none";
+   applyCloudAccessNavigation();
    return;
  }
  const full=String(sharedMembership.permission_level||"").toLowerCase()==="full";
@@ -1743,8 +1767,10 @@ async function refreshSharedMembership(){
    if(!members||!members.length){
      if(status)status.textContent="No active group membership — shared data access is disabled";
      $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
-     const help=$("sharedAccessHelp"); if(help)help.textContent="Your account is signed in, but it is not currently authorized for an active shared group. Ask a Full-access group member to enable your access.";
+     const help=$("sharedAccessHelp"); if(help)help.textContent="Your access to the shared group is disabled. You cannot view or modify the group's shared information. Ask a Full-access group member to enable your access.";
      const notice=$("sharedSaveNotice"); if(notice)notice.textContent="Shared-group saving is unavailable until an active membership is restored.";
+     applyCloudAccessNavigation();
+     if($("settings").classList.contains("active")===false){show("settings");}
      await refreshGroupAccessUI();
      return;
    }
@@ -1763,6 +1789,7 @@ async function refreshSharedMembership(){
    const saveBtn=$("saveSharedData"); if(saveBtn){saveBtn.title=isFull?"Save this device's current group data to the shared group.":"Read-only access: saving changes to the shared group is not available.";}
    const notice=$("sharedSaveNotice"); if(notice)notice.textContent=isFull?"":"Saving is unavailable because this account has Read-only access. A Full-access member can change the permission.";
    applyLocalEditPermissions();
+   applyCloudAccessNavigation();
    await refreshGroupAccessUI();
  }catch(err){
    sharedMembership=null;sharedGroup=null;
@@ -1772,6 +1799,7 @@ async function refreshSharedMembership(){
    const notice=$("sharedSaveNotice"); if(notice)notice.textContent="Shared-group saving is unavailable until access can be verified.";
    console.error(err);
    applyLocalEditPermissions();
+   applyCloudAccessNavigation();
    await refreshGroupAccessUI();
  }
 }
@@ -1946,5 +1974,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.13</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.14</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
