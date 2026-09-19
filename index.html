@@ -14,7 +14,8 @@ button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b423
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.stat{font-size:29px;font-weight:700}
 label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
 input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;border:1px solid #bdc5d0;border-radius:7px;background:#fff;font:inherit}
-textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:650px){.row{grid-template-columns:1fr}}
+textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}@media(max-width:650px){.row{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e1e4e8;text-align:left}
 .call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.shepherding-calls-card{margin-top:16px}.completed-calls-card{margin-top:14px}.completed-calls-card h3{color:#4d5968}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
 .modal{
@@ -883,7 +884,8 @@ textarea.publisher-address-field{
 <div class="card" style="margin:13px 0 0"><b>Connection:</b> <span id="cloudStatus">Not connected</span><br><span id="cloudUserStatus" class="small">No cloud account signed in.</span></div>
 <div id="cloudAuth" style="display:none">
 <label>Email</label><input id="cloudEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false">
-<label>Password</label><input id="cloudPassword" type="password" autocomplete="current-password">
+<label>Password</label><div class="password-row"><input id="cloudPassword" type="password" autocomplete="current-password"><button id="toggleCloudPassword" type="button" class="secondary" aria-pressed="false">Show</button></div>
+<p class="small">Use Show if you need to verify the password you entered.</p>
 <div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
 </div>
 <div id="cloudDataActions" style="display:none">
@@ -1828,8 +1830,18 @@ $("importFile").onchange=e=>importBackupFile(e.target.files[0]);
 $("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this device? This cannot be undone unless you have exported a backup.")){localStorage.removeItem(DATA_KEY);db=fresh();render()}};
 
 initCloud();
+const toggleCloudPassword=$("toggleCloudPassword");
+if(toggleCloudPassword){
+  toggleCloudPassword.onclick=()=>{
+    const input=$("cloudPassword");
+    const showing=input.type==="text";
+    input.type=showing?"password":"text";
+    toggleCloudPassword.textContent=showing?"Show":"Hide";
+    toggleCloudPassword.setAttribute("aria-pressed",String(!showing));
+  };
+}
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.2</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.3</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
