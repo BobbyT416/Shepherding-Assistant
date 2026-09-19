@@ -903,15 +903,15 @@ textarea.publisher-address-field{
 <p id="sharedSaveNotice" class="small" style="margin-top:6px"></p>
 </div>
 </div>
-<div class="card"><h3>Backup / Restore</h3>
-<p>Backups are manual and are not uploaded automatically. Use a backup to keep a copy of the group data or move it to another device.</p>
+<div class="card"><h3>Transfer / Backup</h3>
+<p>Nothing is uploaded automatically. Use one backup option to save or share the group data using the locations available on your device.</p>
 <div class="backup-options">
 <label class="backup-switch"><input id="includeBackupNotes" type="checkbox"><span class="backup-slider"></span><span><b>Include Notes in Backup</b><br><span class="small">Turn this on only when you want personal notes included.</span></span></label>
 </div>
-<div class="actions"><button id="shareBackup">Save / Share Backup</button><button id="importData" class="secondary">Import Backup</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
+<div class="actions"><button id="shareBackup">Save / Share Backup</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
 <p class="small">For privacy, notes are excluded from backups unless the slider is turned on. Your notes on this device are never deleted by turning it off.</p>
-<p class="small">On iPhone/iPad, <b>Save / Share Backup</b> can use <b>Save to Files</b>. To restore a backup from OneDrive or another cloud service on iPhone/iPad: open the <b>Files</b> app, tap <b>Browse</b> → <b>OneDrive</b> (or another location), find your backup, then use <b>Copy</b> or <b>Move</b> to place it in <b>On My iPhone</b>. Return here and tap <b>Import Backup</b> to select it.</p></div>
-<div class="card"><h3>Device Storage</h3><p class="small">The app keeps a local copy of the group on this device. This is separate from the shared cloud copy. Erasing the device copy does not erase the shared cloud group.</p>
+<p class="small">On iPhone/iPad, <b>Save / Share Backup</b> can use <b>Save to Files</b>. For importing from OneDrive or another cloud service on iPhone/iPad: open the <b>Files</b> app, tap <b>Browse</b> → <b>OneDrive</b> (or another location), find your backup, then use <b>Copy</b> or <b>Move</b> to place the backup in <b>On My iPhone</b>. Return here and tap <b>Import Group Data</b> to select it.</p></div>
+<div class="card"><h3>Local Storage</h3><p class="small">This app uses one fixed local data key. Keep using the same app folder/file when updating the program so the browser can retain its local data. The export backup is the safe way to move data to another elder's device.</p>
 <button id="clearData" class="danger">Erase This Device's Group Data</button></div>
 </section>
 
@@ -1054,7 +1054,9 @@ document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()
 }));
 
 function isSharedReadOnly(){
- return !!(sharedMembership && String(sharedMembership.permission_level||"").toLowerCase()==="read");
+ // When signed in to the shared cloud, lack of an active membership is also locked.
+ // This prevents stale local permissions from re-enabling editing after access is disabled.
+ return !!(cloudUser && (!sharedMembership || String(sharedMembership.permission_level||"").toLowerCase()==="read"));
 }
 function readOnlyGuard(){
  if(isSharedReadOnly()){
@@ -1575,10 +1577,6 @@ async function refreshGroupAccessUI(){
  }
  const full=String(sharedMembership.permission_level||"").toLowerCase()==="full";
  if(addCard)addCard.style.display=full?"block":"none";
- if(!full){
-   list.innerHTML='<p class="small"><b>Read-only access</b></p><p class="small">You can view the group, publishers, calendar, and history, but only Full-access members can manage group access.</p>';
-   return;
- }
  try{
    const {data,error}=await sb.rpc("list_group_members",{p_group_id:sharedGroup.id});
    if(error)throw error;
@@ -1948,5 +1946,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.12</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.13</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
