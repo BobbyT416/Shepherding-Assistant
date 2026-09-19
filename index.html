@@ -884,9 +884,11 @@ textarea.publisher-address-field{
 <div class="card" style="margin:13px 0 0"><b>Connection:</b> <span id="cloudStatus">Not connected</span><br><span id="cloudUserStatus" class="small">No cloud account signed in.</span></div>
 <div id="cloudAuth" style="display:none">
 <label>Email</label><input id="cloudEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false">
+<div class="row"><div><label>First Name</label><input id="cloudFirstName" type="text" autocomplete="given-name" placeholder="First name"></div><div><label>Last Name</label><input id="cloudLastName" type="text" autocomplete="family-name" placeholder="Last name"></div></div>
+<p class="small">Your name is used to identify you in Group Access and activity history.</p>
 <label>Password</label><div class="password-row"><input id="cloudPassword" type="password" autocomplete="current-password"><button id="toggleCloudPassword" type="button" class="secondary" aria-pressed="false">Show</button></div>
 <p class="small">Use Show if you need to verify the password you entered.</p>
-<div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
+<div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="saveCloudProfile" class="secondary" style="display:none">Save Name</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
 </div>
 <div id="cloudDataActions" style="display:none">
 <p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
@@ -1152,7 +1154,9 @@ function formatCallDateTime(c){
 function currentUserDisplayName(){
  if(!cloudUser)return "";
  const meta=cloudUser.user_metadata||{};
- return String(meta.full_name||meta.name||cloudUser.email||"Cloud user").trim();
+ const first=String(meta.first_name||"").trim(), last=String(meta.last_name||"").trim();
+ const full=String(meta.full_name||meta.name||[first,last].filter(Boolean).join(" ")||"").trim();
+ return full||cloudUser.email||"Cloud user";
 }
 function callButton(c){
  const attribution=c.scheduledBy?' <div class="small" style="margin-top:4px">Scheduled by: '+esc(c.scheduledBy)+'</div>':'';
@@ -1531,17 +1535,19 @@ async function refreshGroupAccessUI(){
  const full=String(sharedMembership.permission_level||"").toLowerCase()==="full";
  if(addCard)addCard.style.display=full?"block":"none";
  try{
-   const {data,error}=await sb.from("group_members").select("user_id,access_enabled,member_role,permission_level,created_at").eq("group_id",sharedGroup.id).order("created_at",{ascending:true});
+   const {data,error}=await sb.rpc("list_group_members",{p_group_id:sharedGroup.id});
    if(error)throw error;
    if(!data||!data.length){list.innerHTML='<p class="small">No members found.</p>';return;}
    list.innerHTML=data.map(m=>{
      const me=m.user_id===cloudUser.id;
-     const label=me?(cloudUser.email||"Current account"):"Supabase account";
+     const name=me?currentUserDisplayName():String(m.display_name||m.email||"").trim();
+     const label=name||"Supabase account";
+     const email=me?(cloudUser.email||""):String(m.email||"").trim();
      const status=m.access_enabled?"Enabled":"Disabled";
      const perm=String(m.permission_level||"").toLowerCase()==="full"?"Full access":"Read only";
      const disabled=!full || me;
      return '<div class="access-member" style="padding:10px 0;border-top:1px solid #ddd">'+
-       '<b>'+esc(label)+'</b><br><span class="small">'+esc(m.member_role||"Publisher")+' • '+esc(perm)+' • '+esc(status)+'</span>'+
+       '<b>'+esc(label)+'</b>'+(email&&email.toLowerCase()!==label.toLowerCase()?'<br><span class="small">'+esc(email)+'</span>':'')+'<br><span class="small">'+esc(m.member_role||"Publisher")+' • '+esc(perm)+' • '+esc(status)+'</span>'+
        (full?'<div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'" '+(disabled?'disabled':'')+'>'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
        '</div>';
    }).join("");
@@ -1612,7 +1618,9 @@ function updateCloudUI(){
  $("cloudSignIn").style.display=signedIn?"none":"inline-block";
  $("cloudSignUp").style.display=signedIn?"none":"inline-block";
  $("cloudSignOut").style.display=signedIn?"inline-block":"none";
- $("cloudUserStatus").textContent=signedIn?"Signed in as "+(cloudUser.email||"your cloud account")+".":(connected?"Connected. Sign in or create a cloud account.":"No cloud account signed in.");
+ $("saveCloudProfile").style.display=signedIn?"inline-block":"none";
+ if(signedIn){const meta=cloudUser.user_metadata||{}; $("cloudFirstName").value=meta.first_name||""; $("cloudLastName").value=meta.last_name||"";}
+ $("cloudUserStatus").textContent=signedIn?"Signed in as "+(currentUserDisplayName()||cloudUser.email||"your cloud account")+".":(connected?"Connected. Sign in or create a cloud account.":"No cloud account signed in.");
 }
 async function connectSupabase(){
  const url=$("supabaseUrl").value.trim(),key=$("supabaseKey").value.trim();
@@ -1643,12 +1651,25 @@ async function cloudSignIn(){
 async function cloudSignUp(){
  if(!sb){alert("Connect to Supabase first.");return}
  const email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;
+ const first=$("cloudFirstName").value.trim(),last=$("cloudLastName").value.trim();
  if(!email||!password){alert("Enter an email and password.");return}
+ if(!first||!last){alert("Enter your first and last name.");return}
  if(password.length<6){alert("Supabase requires a password of at least 6 characters.");return}
- const {data,error}=await sb.auth.signUp({email,password});
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last,full_name:(first+" "+last).trim()}}});
  if(error){alert("Account creation failed: "+error.message);return}
  if(data.session){cloudUser=data.user;setCloudStatus("Connected");updateCloudUI();alert("Cloud account created and signed in.");}
  else{alert("Account created. Check your email to confirm the account, then return here and sign in.");}
+}
+async function saveCloudProfile(){
+ if(!sb||!cloudUser){alert("Sign in first.");return}
+ const first=$("cloudFirstName").value.trim(),last=$("cloudLastName").value.trim();
+ if(!first||!last){alert("Enter your first and last name.");return}
+ const {data,error}=await sb.auth.updateUser({data:{first_name:first,last_name:last,full_name:(first+" "+last).trim()}});
+ if(error){alert("Unable to save your name: "+error.message);return}
+ cloudUser=data.user||cloudUser;
+ updateCloudUI();
+ await refreshGroupAccessUI();
+ alert("Your name was saved.");
 }
 async function cloudSignOut(){
  if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();
@@ -1738,12 +1759,25 @@ async function cloudSignIn(){
 async function cloudSignUp(){
  if(!sb){alert("Connect to Supabase first.");return}
  const email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;
+ const first=$("cloudFirstName").value.trim(),last=$("cloudLastName").value.trim();
  if(!email||!password){alert("Enter an email and password.");return}
+ if(!first||!last){alert("Enter your first and last name.");return}
  if(password.length<6){alert("Supabase requires a password of at least 6 characters.");return}
- const {data,error}=await sb.auth.signUp({email,password});
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last,full_name:(first+" "+last).trim()}}});
  if(error){alert("Account creation failed: "+error.message);return}
  if(data.session){cloudUser=data.user;setCloudStatus("Connected");updateCloudUI();await refreshSharedMembership();alert("Cloud account created and signed in.");}
  else{alert("Account created. Check your email to confirm the account, then return here and sign in.");}
+}
+async function saveCloudProfile(){
+ if(!sb||!cloudUser){alert("Sign in first.");return}
+ const first=$("cloudFirstName").value.trim(),last=$("cloudLastName").value.trim();
+ if(!first||!last){alert("Enter your first and last name.");return}
+ const {data,error}=await sb.auth.updateUser({data:{first_name:first,last_name:last,full_name:(first+" "+last).trim()}});
+ if(error){alert("Unable to save your name: "+error.message);return}
+ cloudUser=data.user||cloudUser;
+ updateCloudUI();
+ await refreshGroupAccessUI();
+ alert("Your name was saved.");
 }
 async function cloudSignOut(){
  if(sb)await sb.auth.signOut();cloudUser=null;sharedMembership=null;sharedGroup=null;updateCloudUI();
@@ -1756,6 +1790,7 @@ function initCloud(){
  $("cloudSignIn").onclick=cloudSignIn;
  $("cloudSignUp").onclick=cloudSignUp;
  $("cloudSignOut").onclick=cloudSignOut;
+ $("saveCloudProfile").onclick=saveCloudProfile;
  $("loadSharedData").onclick=loadSharedGroupData;
  $("saveSharedData").onclick=saveSharedGroupData;
  $("loadSharedData").disabled=true;
@@ -1843,5 +1878,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.3</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.4</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
