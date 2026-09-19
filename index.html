@@ -1584,6 +1584,15 @@ async function addGroupAccessMember(){
  $("accessEmail").value="";
  await refreshGroupAccessUI();
 }
+$("addAccessMember").onclick=async()=>{
+ const btn=$("addAccessMember");
+ if(!btn)return;
+ btn.disabled=true;
+ const oldText=btn.textContent;
+ btn.textContent="Adding…";
+ try{await addGroupAccessMember();}
+ finally{btn.disabled=false;btn.textContent=oldText;}
+};
 function loadCloudConfig(){
  try{return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY)||"null")}catch(e){return null}
 }
