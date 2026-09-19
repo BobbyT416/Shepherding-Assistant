@@ -1550,13 +1550,28 @@ async function refreshGroupAccessUI(){
      const disabled=!full || me;
      return '<div class="access-member" style="padding:10px 0;border-top:1px solid #ddd">'+
        '<b>'+esc(label)+'</b>'+(email&&email.toLowerCase()!==label.toLowerCase()?'<br><span class="small">'+esc(email)+'</span>':'')+'<br><span class="small">'+esc(m.member_role||"Publisher")+' • '+esc(perm)+' • '+esc(status)+'</span>'+
-       (full?'<div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'" '+(disabled?'disabled':'')+'>'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
+       (full&&!me?'<div class="row" style="margin-top:9px"><div><label>Role</label><select data-member-role="'+esc(m.user_id)+'"><option value="Elder" '+(m.member_role==='Elder'?'selected':'')+'>Elder</option><option value="Ministerial Servant" '+(m.member_role==='Ministerial Servant'?'selected':'')+'>Ministerial Servant</option></select></div><div><label>Permission</label><select data-member-permission="'+esc(m.user_id)+'"><option value="Full" '+(String(m.permission_level||'').toLowerCase()==='full'?'selected':'')+'>Full access</option><option value="Read" '+(String(m.permission_level||'').toLowerCase()==='read'?'selected':'')+'>Read only</option></select></div></div><div style="margin-top:7px"><button class="secondary" data-save-member="'+esc(m.user_id)+'">Save Member Settings</button></div><div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'">'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
+       (full&&me?'<div class="small" style="margin-top:7px">Your own role and permission cannot be changed here.</div><div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'" disabled>'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
        '</div>';
    }).join("");
    document.querySelectorAll("[data-toggle-access]").forEach(b=>b.onclick=()=>toggleGroupAccess(b.dataset.toggleAccess,b.dataset.enabled!=="true"));
+   document.querySelectorAll("[data-save-member]").forEach(b=>b.onclick=()=>updateGroupMember(b.dataset.saveMember));
  }catch(err){
    list.innerHTML='<p class="small">Unable to load group members: '+esc(err?.message||err)+'</p>';
  }
+}
+async function updateGroupMember(userId){
+ if(!sb||!cloudUser||!sharedGroup||!sharedMembership)return;
+ if(String(sharedMembership.permission_level||"").toLowerCase()!=="full"){alert("Only Full-access members can manage group access.");return}
+ if(userId===cloudUser.id){alert("Your own role and permission cannot be changed here.");return}
+ const roleEl=document.querySelector('[data-member-role="'+CSS.escape(userId)+'"]');
+ const permissionEl=document.querySelector('[data-member-permission="'+CSS.escape(userId)+'"]');
+ if(!roleEl||!permissionEl){alert("Unable to read the selected member settings.");return}
+ const role=roleEl.value, permission=permissionEl.value;
+ const {error}=await sb.from("group_members").update({member_role:role,permission_level:permission}).eq("group_id",sharedGroup.id).eq("user_id",userId);
+ if(error){alert("Unable to update this member: "+error.message);return}
+ alert("Member settings saved.");
+ await refreshGroupAccessUI();
 }
 async function toggleGroupAccess(userId,enabled){
  if(!sb||!cloudUser||!sharedGroup||!sharedMembership)return;
@@ -1883,5 +1898,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.5</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.6</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
