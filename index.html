@@ -883,6 +883,8 @@ textarea.publisher-address-field{
 <div class="actions"><button id="connectSupabase">Connect</button><button id="disconnectSupabase" class="secondary">Disconnect</button></div>
 <div class="card" style="margin:13px 0 0"><b>Connection:</b> <span id="cloudStatus">Not connected</span><br><span id="cloudUserStatus" class="small">No cloud account signed in.</span></div>
 <div id="cloudAuth" style="display:none">
+<h4 style="margin:0 0 8px">Cloud Account</h4>
+<p class="small">Use your own Shepherding Assistant account. Your group administrator adds your account to the shared group after you create it.</p>
 <label>Email</label><input id="cloudEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false">
 <div class="row"><div><label>First Name</label><input id="cloudFirstName" type="text" autocomplete="given-name" placeholder="First name"></div><div><label>Last Name</label><input id="cloudLastName" type="text" autocomplete="family-name" placeholder="Last name"></div></div>
 <p class="small">Your name is used to identify you in Group Access and activity history.</p>
@@ -893,7 +895,7 @@ textarea.publisher-address-field{
 <div id="cloudDataActions" style="display:none">
 <p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
 <div class="actions"><button id="loadSharedData" class="secondary">Load Shared Group Data</button><button id="saveSharedData">Save Changes to Shared Group</button></div>
-<p class="small">Shared group data is stored in the group's cloud record. Loading replaces this device's current local group data after confirmation. Saving sends this device's current group data to the shared group.</p>
+<p id="sharedAccessHelp" class="small">Shared group data is stored in the group's cloud record. Loading replaces this device's current group data after confirmation. Saving sends this device's current group data to the shared group.</p>
 </div>
 </div>
 <div class="card"><h3>Transfer / Backup</h3>
@@ -1619,8 +1621,8 @@ function updateCloudUI(){
  $("cloudSignUp").style.display=signedIn?"none":"inline-block";
  $("cloudSignOut").style.display=signedIn?"inline-block":"none";
  $("saveCloudProfile").style.display=signedIn?"inline-block":"none";
- if(signedIn){const meta=cloudUser.user_metadata||{}; $("cloudFirstName").value=meta.first_name||""; $("cloudLastName").value=meta.last_name||"";}
- $("cloudUserStatus").textContent=signedIn?"Signed in as "+(currentUserDisplayName()||cloudUser.email||"your cloud account")+".":(connected?"Connected. Sign in or create a cloud account.":"No cloud account signed in.");
+ if(signedIn){const meta=cloudUser.user_metadata||{}; $("cloudEmail").value=cloudUser.email||""; $("cloudFirstName").value=meta.first_name||""; $("cloudLastName").value=meta.last_name||"";}
+ $("cloudUserStatus").textContent=signedIn?"Signed in as "+(currentUserDisplayName()||cloudUser.email||"your cloud account")+".":(connected?"Connected. Sign in to an existing account or create a new one.":"No cloud account signed in.");
 }
 async function connectSupabase(){
  const url=$("supabaseUrl").value.trim(),key=$("supabaseKey").value.trim();
@@ -1683,8 +1685,9 @@ async function refreshSharedMembership(){
    const {data:members,error:memberError}=await sb.from("group_members").select("group_id,access_enabled,member_role,permission_level").eq("user_id",cloudUser.id).eq("access_enabled",true);
    if(memberError)throw memberError;
    if(!members||!members.length){
-     if(status)status.textContent="No active group membership";
+     if(status)status.textContent="No active group membership — shared data access is disabled";
      $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
+     const help=$("sharedAccessHelp"); if(help)help.textContent="Your account is signed in, but it is not currently authorized for an active shared group. Ask a Full-access group member to enable your access.";
      await refreshGroupAccessUI();
      return;
    }
@@ -1698,11 +1701,13 @@ async function refreshSharedMembership(){
    if(status)status.textContent=g.name+(groupIds.length>1?" (first active group)":"")+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
    $("loadSharedData").disabled=false;
    $("saveSharedData").disabled=String(first.permission_level||"").toLowerCase()!=="full";
+   const help=$("sharedAccessHelp"); if(help)help.textContent=String(first.permission_level||"").toLowerCase()==="full"?"You have Full access. You can load shared data and save changes to the shared group.":"You have Read-only access. You can load shared data, but you cannot save changes to the shared group.";
    await refreshGroupAccessUI();
  }catch(err){
    sharedMembership=null;sharedGroup=null;
    if(status)status.textContent="Unable to check group access";
    $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
+   const help=$("sharedAccessHelp"); if(help)help.textContent="The app could not verify your shared-group access. Check your connection or ask a Full-access group member to verify your membership.";
    console.error(err);
    await refreshGroupAccessUI();
  }
@@ -1878,5 +1883,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.4</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.5</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
