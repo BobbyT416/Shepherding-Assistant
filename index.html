@@ -815,6 +815,7 @@ textarea.publisher-address-field{
 <div class="publisher-header-layout">
   <div class="publisher-header-left">
     <h2>Publishers</h2>
+    <p id="publisherReadOnlyNotice" class="small"></p>
     <button id="addPublisher">+ Add Publisher</button>
   </div>
   <div class="publisher-status-key-column">
@@ -832,6 +833,7 @@ textarea.publisher-address-field{
 
 <section id="calendar" class="page">
 <h2>Shepherding Calendar</h2>
+<p id="calendarReadOnlyNotice" class="small"></p>
 <div class="card">
 <div class="actions" style="margin-top:0"><button id="listViewBtn">List View</button><button id="monthViewBtn" class="secondary">Calendar View</button></div>
 <div class="month-nav">
@@ -845,6 +847,7 @@ textarea.publisher-address-field{
 
 <section id="group" class="page">
 <h2>Group Setup</h2>
+<p id="groupReadOnlyNotice" class="small"></p>
 <div class="card">
 <label>Group Name</label><input id="groupName" placeholder="e.g. North Group">
 <div class="row"><div><label>Group Overseer</label><select id="groupOverseer"></select></div>
@@ -1050,6 +1053,31 @@ document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()
  show(b.dataset.page)
 }));
 
+function isSharedReadOnly(){
+ return !!(sharedMembership && String(sharedMembership.permission_level||"").toLowerCase()==="read");
+}
+function readOnlyGuard(){
+ if(isSharedReadOnly()){
+   alert("Read-only access: you can view the group, but you cannot make changes.");
+   return true;
+ }
+ return false;
+}
+function applyLocalEditPermissions(){
+ const ro=isSharedReadOnly();
+ ["saveGroup","addElder","elderSelect","groupName","groupOverseer","groupAssistant","addPublisher","importData","clearData","saveCall","savePub","updateCall","cancelVisit","deleteCall"].forEach(id=>{const el=$(id);if(el)el.disabled=ro;});
+ document.querySelectorAll("[data-remove-elder]").forEach(b=>b.disabled=ro);
+ document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.disabled=ro);
+ document.querySelectorAll("[data-stat-publisher]").forEach(b=>b.disabled=ro);
+ document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.disabled=ro);
+ document.querySelectorAll("[data-empty-date]").forEach(b=>b.disabled=ro);
+ const notice=$("groupReadOnlyNotice");
+ if(notice)notice.textContent=ro?"Read-only access: group information and publisher records cannot be changed on this device.":"";
+ const pubNotice=$("publisherReadOnlyNotice");
+ if(pubNotice)pubNotice.textContent=ro?"Read-only access: you can view publishers and history, but you cannot add or edit records.":"";
+ const calNotice=$("calendarReadOnlyNotice");
+ if(calNotice)calNotice.textContent=ro?"Read-only access: you can view scheduled visits, but you cannot schedule or change them.":"";
+}
 function renderGroup(){
  $("headerGroup").textContent=db.group.name||"One Field Service Group • Local Only";
  $("dashGroup").textContent=db.group.name||"Not configured";
@@ -1063,6 +1091,7 @@ function renderGroup(){
  const elderChoices=db.publishers.filter(p=>p.role==="Elder").map(p=>p.name).filter(n=>n!==db.group.overseer&&n!==db.group.assistant&&!db.group.elders.includes(n));
  $("elderSelect").innerHTML='<option value="">— Select Elder —</option>'+elderChoices.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
  document.querySelectorAll("[data-remove-elder]").forEach(b=>b.onclick=()=>{db.group.elders.splice(Number(b.dataset.removeElder),1);persist()});
+ applyLocalEditPermissions();
 }
 function publisherFamilyKey(p){
  const h=(p&&p.house||"").trim();
@@ -1115,6 +1144,7 @@ function renderPublishers(){
  $("publisherRows").innerHTML=rows;
  document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
  document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
+ applyLocalEditPermissions();
 }
 function updateFriendlyCallDate(dateId,timeId,outId){
  const date=$(dateId),out=$(outId);
@@ -1171,6 +1201,7 @@ function renderCalls(){
  const today=new Date().toISOString().slice(0,10);
  $("upcoming").innerHTML=scheduled.filter(c=>c.date>=today).slice(0,8).map(callButton).join("")||"None.";
  document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+ applyLocalEditPermissions();
 }
 let calendarMode="list";
 function shiftCalendarMonth(delta){
@@ -1208,6 +1239,7 @@ function renderCalendar(){
  }
  document.querySelectorAll("#calendarContent [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call,true));
  document.querySelectorAll("#calendarContent [data-empty-date]").forEach(b=>b.onclick=()=>openScheduleCall("",b.dataset.emptyDate,true));
+ applyLocalEditPermissions();
 }
 function publisherDisplayName(p){
  const raw=String(p?.name||"").trim();
@@ -1276,13 +1308,14 @@ function renderDashboard(){
   return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>';
  }).join("")||"None.";
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.attentionPublisher));
+ applyLocalEditPermissions();
 }
 function render(){
  // Keep dashboard/publisher status derived from the current shepherding call records.
  // Cancelled visits cannot leave a stale "Up to date" status behind.
  syncAllPublisherLast();
  try{localStorage.setItem(DATA_KEY,JSON.stringify(db));$("storageStatus").textContent="Local data active — saved on this device"}catch(e){$("storageStatus").textContent="Unable to save local data"}
- renderGroup();renderPublishers();renderCalls();renderCalendar();renderDashboard()
+ renderGroup();renderPublishers();renderCalls();renderCalendar();renderDashboard();applyLocalEditPermissions()
 }
 
 function openModal(content){
@@ -1320,6 +1353,7 @@ function visitScopeOptions(selected){
  return '<div class="visit-scope"><label>Visit With</label><div class="scope-options"><label><input type="radio" name="visitScope" value="publisher"'+(selected?'':' checked')+'> Publisher only</label><label><input type="radio" name="visitScope" value="family"'+(selected?' checked':'')+'> Whole family</label></div></div>';
 }
 function openScheduleCall(publisherId="",initialDate="",returnVisit=false){
+ if(readOnlyGuard())return;
  if(!db.publishers.length){alert("Add a publisher first.");return}
  const today=new Date().toISOString().slice(0,10);
  const date=initialDate||today;
@@ -1359,6 +1393,7 @@ function publisherRoleOptions(selected=""){
  return '<option value=""'+(selected===""?' selected':'')+'>— Blank —</option><option value="Publisher"'+(selected==="Publisher"?' selected':'')+'>Publisher</option><option value="Auxiliary Pioneer"'+(selected==="Auxiliary Pioneer"?' selected':'')+'>Auxiliary Pioneer</option><option value="Regular Pioneer"'+(selected==="Regular Pioneer"?' selected':'')+'>Regular Pioneer</option><option value="Inactive"'+(selected==="Inactive"?' selected':'')+'>Inactive</option><option value="Elder"'+(selected==="Elder"?' selected':'')+'>Elder</option><option value="Ministerial Servant"'+(selected==="Ministerial Servant"?' selected':'')+'>Ministerial Servant</option>';
 }
 function editPublisher(id){
+ if(readOnlyGuard())return;
  const p=db.publishers.find(x=>x.id===id);if(!p)return;
  normalizePublisherRecord(p);
  const head=familyHeadForHouse(p.house,p.id);
@@ -1458,6 +1493,7 @@ function showHistory(publisherId){
  });
 }
 function editCall(id,fromCalendar=false){
+ if(readOnlyGuard())return;
  returnToDashboardAfterCallEdit=!!fromCalendar;
  const c=db.calls.find(x=>x.id===id);if(!c)return;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
@@ -1515,6 +1551,7 @@ function editCall(id,fromCalendar=false){
  };
 }
 $("saveGroup").onclick=()=>{
+ if(readOnlyGuard())return;
  const name=$("groupName").value.trim();
  const overseer=$("groupOverseer").value;
  const assistant=$("groupAssistant").value;
@@ -1523,10 +1560,10 @@ $("saveGroup").onclick=()=>{
  persist();
  alert("Group information saved.");
 };
-$("addElder").onclick=()=>{const n=$("elderSelect").value;if(!n)return;db.group.elders=db.group.elders||[];if(!db.group.elders.includes(n)){db.group.elders.push(n);persist()}};
+$("addElder").onclick=()=>{if(readOnlyGuard())return;const n=$("elderSelect").value;if(!n)return;db.group.elders=db.group.elders||[];if(!db.group.elders.includes(n)){db.group.elders.push(n);persist()}};
 
 $("calendarMonth").onchange=renderCalendar;$("prevMonth").onclick=()=>shiftCalendarMonth(-1);$("nextMonth").onclick=()=>shiftCalendarMonth(1);$("listViewBtn").onclick=()=>{calendarMode="list";renderCalendar()};$("monthViewBtn").onclick=()=>{calendarMode="calendar";renderCalendar()};
-$("reminderMonths").onchange=()=>{db.reminderMonths=Math.max(1,Number($("reminderMonths").value)||3);persist()};
+$("reminderMonths").onchange=()=>{if(readOnlyGuard())return;db.reminderMonths=Math.max(1,Number($("reminderMonths").value)||3);persist()};
 
 async function refreshGroupAccessUI(){
  const list=$("accessMemberList"), addCard=$("accessAddCard");
@@ -1723,6 +1760,7 @@ async function refreshSharedMembership(){
    const help=$("sharedAccessHelp"); if(help)help.textContent=isFull?"You have Full access. You can load shared data and save changes to the shared group.":"You have Read-only access. You can load shared data, but you cannot save changes to the shared group.";
    const saveBtn=$("saveSharedData"); if(saveBtn){saveBtn.title=isFull?"Save this device's current group data to the shared group.":"Read-only access: saving changes to the shared group is not available.";}
    const notice=$("sharedSaveNotice"); if(notice)notice.textContent=isFull?"":"Saving is unavailable because this account has Read-only access. A Full-access member can change the permission.";
+   applyLocalEditPermissions();
    await refreshGroupAccessUI();
  }catch(err){
    sharedMembership=null;sharedGroup=null;
@@ -1731,6 +1769,7 @@ async function refreshSharedMembership(){
    const help=$("sharedAccessHelp"); if(help)help.textContent="The app could not verify your shared-group access. Check your connection or ask a Full-access group member to verify your membership.";
    const notice=$("sharedSaveNotice"); if(notice)notice.textContent="Shared-group saving is unavailable until access can be verified.";
    console.error(err);
+   applyLocalEditPermissions();
    await refreshGroupAccessUI();
  }
 }
@@ -1863,7 +1902,7 @@ $("shareBackup").onclick=async()=>{
    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
  }
 };
-$("importData").onclick=async()=>{
+$("importData").onclick=async()=>{if(readOnlyGuard())return;
  try{
    if(window.showOpenFilePicker){
      const handles=await window.showOpenFilePicker({
@@ -1889,7 +1928,7 @@ function importBackupFile(f){
 }
 $("importFile").onchange=e=>importBackupFile(e.target.files[0]);
 
-$("clearData").onclick=()=>{if(confirm("Erase ALL group data stored on this device? This cannot be undone unless you have exported a backup.")){localStorage.removeItem(DATA_KEY);db=fresh();render()}};
+$("clearData").onclick=()=>{if(readOnlyGuard())return;if(confirm("Erase ALL group data stored on this device? This cannot be undone unless you have exported a backup.")){localStorage.removeItem(DATA_KEY);db=fresh();render()}};
 
 initCloud();
 const toggleCloudPassword=$("toggleCloudPassword");
@@ -1905,5 +1944,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.8</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.9</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
