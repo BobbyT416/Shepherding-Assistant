@@ -1575,6 +1575,10 @@ async function refreshGroupAccessUI(){
  }
  const full=String(sharedMembership.permission_level||"").toLowerCase()==="full";
  if(addCard)addCard.style.display=full?"block":"none";
+ if(!full){
+   list.innerHTML='<p class="small"><b>Read-only access</b></p><p class="small">You can view the group, publishers, calendar, and history, but only Full-access members can manage group access.</p>';
+   return;
+ }
  try{
    const {data,error}=await sb.rpc("list_group_members",{p_group_id:sharedGroup.id});
    if(error)throw error;
@@ -1944,5 +1948,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.10</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.11</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
