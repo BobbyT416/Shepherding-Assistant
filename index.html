@@ -1042,17 +1042,18 @@ function isCancelledCall(c){
 function syncPublisherLast(publisherId){
  const p=db.publishers.find(x=>x.id===publisherId);
  if(!p)return;
- const completed=db.calls.filter(c=>c.publisherId===publisherId&&String(c.status||"").trim().toLowerCase()==="completed"&&c.date).sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||"")));
+ const completed=db.calls.filter(c=>c.publisherId===publisherId&&String(c.status||"").trim().toLowerCase()==="completed"&&(c.completedDate||c.date)).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
  // Last Shepherding Contact is derived exclusively from completed history.
- // If there is no completed history, there is no last-contact date.
- p.last=completed.length?completed[0].date:"";
+ // When a visit is completed retroactively, use its actual completion date.
+ // Older completed records without completedDate fall back to their original date.
+ p.last=completed.length?(completed[0].completedDate||completed[0].date):"";
 }
 function syncAllPublisherLast(){
  (db.publishers||[]).forEach(p=>{
-   const completed=db.calls.filter(c=>c.publisherId===p.id&&String(c.status||"").trim().toLowerCase()==="completed"&&c.date).sort((a,b)=>(b.date+(b.time||"")).localeCompare(a.date+(a.time||"")));
+   const completed=db.calls.filter(c=>c.publisherId===p.id&&String(c.status||"").trim().toLowerCase()==="completed"&&(c.completedDate||c.date)).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
    // Always derive the field from completed history. This also repairs older
    // records that retained a stale manual/contact date after a visit was cancelled.
-   p.last=completed.length?completed[0].date:"";
+   p.last=completed.length?(completed[0].completedDate||completed[0].date):"";
  });
 }
 function status(p){
@@ -1211,12 +1212,19 @@ function formatDisplayDate(dateString){
  return d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
 }
 function formatCallDateTime(c){
- const d=new Date(c.date+"T"+(c.time||"12:00"));
- if(Number.isNaN(d.getTime())) return esc(c.date)+" "+esc(c.time||"");
+ const displayDate=(c.status==="Completed"&&c.completedDate)||c.date;
+ const d=new Date(displayDate+"T"+(c.time||"12:00"));
+ if(Number.isNaN(d.getTime())) return esc(displayDate)+" "+esc(c.time||"");
  const day=d.toLocaleDateString("en-US",{weekday:"long"});
  const date=d.toLocaleDateString("en-US",{month:"long",day:"numeric"});
  const time=d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
  return day+", "+date+" at "+time;
+}
+function formatScheduledDate(c){
+ return c.date?formatDisplayDate(c.date):"Not recorded";
+}
+function formatCompletedDate(c){
+ return (c.completedDate||c.date)?formatDisplayDate(c.completedDate||c.date):"Not recorded";
 }
 function currentUserDisplayName(){
  if(!cloudUser)return "";
@@ -1510,10 +1518,10 @@ $("addPublisher").onclick=()=>{
 };
 function showHistory(publisherId){
  const p=db.publishers.find(x=>x.id===publisherId);if(!p)return;
- const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+ const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
  let body=history.length?history.map(c=>{
    const brothers=[c.brother1,c.brother2].filter(Boolean).map(shepherdingBrotherName).join(" & ")||"Not recorded";
-   return '<div class="card"><h3>'+formatCallDateTime(c)+'</h3><p><b>Brothers:</b> '+esc(brothers)+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+'</p><p><b>Notes:</b><br>'+esc(c.notes||"No notes recorded.")+'</p><div class="actions"><button class="secondary" data-history-call="'+esc(c.id)+'">Open Visit Details</button><button class="danger" data-history-delete="'+esc(c.id)+'">Delete Visit</button></div></div>'
+   return '<div class="card"><h3>'+formatCallDateTime(c)+'</h3><p><b>Scheduled Date:</b> '+esc(formatScheduledDate(c))+'<br><b>Completed Date:</b> '+esc(formatCompletedDate(c))+'<br><b>Brothers:</b> '+esc(brothers)+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+'</p><p><b>Notes:</b><br>'+esc(c.notes||"No notes recorded.")+'</p><div class="actions"><button class="secondary" data-history-call="'+esc(c.id)+'">Open Visit Details</button><button class="danger" data-history-delete="'+esc(c.id)+'">Delete Visit</button></div></div>'
  }).join(""):'<div class="card"><p>No completed shepherding calls have been recorded for '+esc(p.name)+'.</p></div>';
  openModal('<h2>Shepherding History</h2><p><b>'+esc(p.name)+'</b></p>'+body+'<div class="actions"><button id="closeHistory" class="secondary">Close</button></div>');
  $("closeHistory").onclick=closeModal;
@@ -1535,7 +1543,8 @@ function editCall(id,fromCalendar=false){
  returnToDashboardAfterCallEdit=!!fromCalendar;
  const c=db.calls.find(x=>x.id===id);if(!c)return;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
- openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select>'+visitScopeOptions(!!c.wholeFamily)+'<div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+shepherdingBrotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+shepherdingBrotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><label>Notes</label><textarea id="eNotes">'+esc(c.notes||"")+'</textarea>'+(c.scheduledBy?'<p class="small" style="margin:10px 0 0"><b>Scheduled by:</b> '+esc(c.scheduledBy)+'</p>':'')+'<div class="actions"><button id="updateCall">Save Changes</button><button id="cancelVisit" class="danger" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Cancel Visit</button><button id="deleteCall" class="danger" style="display:'+(c.status!=="Scheduled"?'inline-block':'none')+'">Delete Visit</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
+ const today=new Date().toISOString().slice(0,10);
+ openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select>'+visitScopeOptions(!!c.wholeFamily)+'<div class="row"><div><label>Scheduled Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+shepherdingBrotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+shepherdingBrotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><div id="completionDateRow" style="display:'+(c.status==="Completed"?'block':'none')+'"><label>Completion Date</label><div class="friendly-date-input"><input id="eCompletedDate" type="date" value="'+esc(c.completedDate||today)+'"><span id="eCompletedDateDisplay" class="friendly-input-text"></span></div><p class="small">Enter the actual date the shepherding call took place.</p></div><label>Notes</label><textarea id="eNotes">'+esc(c.notes||"")+'</textarea>'+(c.scheduledBy?'<p class="small" style="margin:10px 0 0"><b>Scheduled by:</b> '+esc(c.scheduledBy)+'</p>':'')+'<div class="actions"><button id="markCompleted" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Mark Completed</button><button id="updateCall">Save Changes</button><button id="cancelVisit" class="danger" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Cancel Visit</button><button id="deleteCall" class="danger" style="display:'+(c.status!=="Scheduled"?'inline-block':'none')+'">Delete Visit</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
  $("cancelEdit").onclick=()=>{
   closeModal();
   if(returnToDashboardAfterCallEdit){
@@ -1546,10 +1555,25 @@ function editCall(id,fromCalendar=false){
  updateFriendlyCallDate("eDate","eTime","eDateDisplay");
  $("eDate").onchange=()=>updateFriendlyCallDate("eDate","eTime","eDateDisplay");
  $("eTime").onchange=()=>updateFriendlyCallDate("eDate","eTime","eDateDisplay");
- $("eStatus").onchange=()=>{
-   const scheduled=$("eStatus").value==="Scheduled";
+ updateFriendlyCallDate("eDate","eTime","eDateDisplay");
+ if($("eCompletedDate"))updateFriendlyCallDate("eCompletedDate","eTime","eCompletedDateDisplay");
+ if($("eCompletedDate"))$("eCompletedDate").onchange=()=>updateFriendlyCallDate("eCompletedDate","eTime","eCompletedDateDisplay");
+ const refreshCompletionUI=()=>{
+   const status=$("eStatus").value;
+   const scheduled=status==="Scheduled";
+   const completed=status==="Completed";
    $("cancelVisit").style.display=scheduled?"inline-block":"none";
    $("deleteCall").style.display=scheduled?"none":"inline-block";
+   $("markCompleted").style.display=scheduled?"inline-block":"none";
+   $("completionDateRow").style.display=completed?"block":"none";
+   if(completed && !$("eCompletedDate").value)$("eCompletedDate").value=new Date().toISOString().slice(0,10);
+   if(completed)updateFriendlyCallDate("eCompletedDate","eTime","eCompletedDateDisplay");
+ };
+ $("eStatus").onchange=refreshCompletionUI;
+ $("markCompleted").onclick=()=>{
+   $("eStatus").value="Completed";
+   $("eCompletedDate").value=new Date().toISOString().slice(0,10);
+   refreshCompletionUI();
  };
  $("cancelVisit").onclick=()=>{
    if(confirm("Cancel this scheduled shepherding visit? The visit will remain in your records as Cancelled.")){
@@ -1580,7 +1604,10 @@ function editCall(id,fromCalendar=false){
    const oldStatus=c.status;
    if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
    const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
-   c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother2=b2;c.type=$("eType").value;c.status=$("eStatus").value;c.notes=$("eNotes").value;c.wholeFamily=wholeFamily;   if(oldStatus==="Completed" && oldPublisherId!==c.publisherId)syncPublisherLast(oldPublisherId);
+   const newStatus=$("eStatus").value;
+   const completionDate=$("eCompletedDate")?$("eCompletedDate").value:"";
+   if(newStatus==="Completed"&&!completionDate){alert("Please enter the completion date.");return}
+   c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother2=b2;c.type=$("eType").value;c.status=newStatus;c.completedDate=newStatus==="Completed"?(completionDate||new Date().toISOString().slice(0,10)):"";c.notes=$("eNotes").value;c.wholeFamily=wholeFamily;   if(oldStatus==="Completed" && oldPublisherId!==c.publisherId)syncPublisherLast(oldPublisherId);
    syncPublisherLast(c.publisherId);
    const goHome=returnToDashboardAfterCallEdit;
    returnToDashboardAfterCallEdit=false;
@@ -2066,5 +2093,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.20</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.21</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
