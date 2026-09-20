@@ -880,6 +880,12 @@ textarea.publisher-address-field{
 <h2>Settings & Local & Shared Cloud Data</h2><div class="card"><b>Storage status:</b> <span id="storageStatus">Local data active</span></div>
 <div class="card"><label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
 <p class="small">A publisher is flagged when the last completed shepherding call is older than this interval.</p></div>
+<div class="card" id="myGroupsCard" style="display:none">
+<h3>My Groups</h3>
+<p class="small">These are the Field Service Groups your account is authorized to access. Publishers do not have app accounts or access.</p>
+<div id="myGroupsList"><p class="small">Sign in to view your groups.</p></div>
+<div class="actions"><button id="createNewGroup" class="secondary">+ Create New Group</button></div>
+</div>
 <div class="card">
 <h3>Shared Cloud (Supabase)</h3>
 <p class="small">Cloud sync is optional. Your existing local data remains on this device until you explicitly upload or download it. The publishable key is safe for browser use; never enter a secret/service-role key here.</p>
@@ -1756,6 +1762,48 @@ async function saveCloudProfile(){
 async function cloudSignOut(){
  if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();
 }
+async function refreshMyGroupsUI(){
+ const card=$("myGroupsCard"),list=$("myGroupsList"),btn=$("createNewGroup");
+ if(!card||!list)return;
+ if(!sb||!cloudUser){
+   card.style.display="none";
+   list.innerHTML='<p class="small">Sign in to view your groups.</p>';
+   return;
+ }
+ card.style.display="block";
+ try{
+   const {data,error}=await sb.rpc("list_my_groups");
+   if(error)throw error;
+   if(!data||!data.length){
+     list.innerHTML='<p class="small">You are not currently a member of any group.</p>';
+     return;
+   }
+   list.innerHTML=data.map(g=>{
+     const active=!!g.access_enabled;
+     const perm=String(g.permission_level||"").toLowerCase()==="full"?"Full access":String(g.permission_level||"").toLowerCase()==="read"?"Read only":"No editing access";
+     const role=esc(g.member_role||"");
+     return '<div class="card" style="margin:8px 0;padding:11px"><b>'+esc(g.group_name||"Unnamed Group")+'</b><br><span class="small">'+role+' • '+(active?perm:"Access disabled")+'</span></div>';
+   }).join("");
+ }catch(err){
+   list.innerHTML='<p class="small">Unable to load your groups: '+esc(err?.message||err)+'</p>';
+ }
+}
+async function createNewGroup(){
+ if(!sb||!cloudUser){alert("Sign in to your Shepherding Assistant account first.");return}
+ const name=prompt("Enter the name for the new Field Service Group:","");
+ if(name===null)return;
+ const groupName=name.trim();
+ if(!groupName){alert("A group name is required.");return}
+ const role=prompt("Enter your role for this group: type Elder or Ministerial Servant.","Elder");
+ if(role===null)return;
+ const memberRole=role.trim()==="Ministerial Servant"?"Ministerial Servant":role.trim()==="Elder"?"Elder":"";
+ if(!memberRole){alert("The role must be Elder or Ministerial Servant.");return}
+ if(!confirm("Create the new group \""+groupName+"\"? It will start with no publishers or shepherding records, and you will have Full access."))return;
+ const {data,error}=await sb.rpc("create_new_group",{p_group_name:groupName,p_member_role:memberRole});
+ if(error){alert("Unable to create the new group: "+error.message);return}
+ await refreshMyGroupsUI();
+ alert("New group created successfully. It is separate from your current group. Nothing in your current group was changed.");
+}
 async function refreshSharedMembership(){
  sharedMembership=null;sharedGroup=null;
  const status=$("sharedGroupStatus");
@@ -1837,7 +1885,7 @@ async function connectSupabase(){
    cloudUser=data.session?.user||null;
    setCloudStatus("Connected");
    updateCloudUI();
-   if(cloudUser)await refreshSharedMembership();
+   if(cloudUser){await refreshSharedMembership();await refreshMyGroupsUI();}
  }catch(err){sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;setCloudStatus("Connection failed");updateCloudUI();alert("Supabase connection failed: "+(err?.message||err));}
 }
 async function disconnectSupabase(){
@@ -1850,7 +1898,7 @@ async function cloudSignIn(){
  if(!email||!password){alert("Enter your email and password.");return}
  const {data,error}=await sb.auth.signInWithPassword({email,password});
  if(error){alert("Sign in failed: "+error.message);return}
- cloudUser=data.user;setCloudStatus("Connected");updateCloudUI();await refreshSharedMembership();alert("Signed in successfully.");
+ cloudUser=data.user;setCloudStatus("Connected");updateCloudUI();await refreshSharedMembership();await refreshMyGroupsUI();alert("Signed in successfully.");
 }
 async function cloudSignUp(){
  if(!sb){alert("Connect to Supabase first.");return}
@@ -1861,7 +1909,7 @@ async function cloudSignUp(){
  if(password.length<6){alert("Supabase requires a password of at least 6 characters.");return}
  const {data,error}=await sb.auth.signUp({email,password,options:{data:{first_name:first,last_name:last,full_name:(first+" "+last).trim()}}});
  if(error){alert("Account creation failed: "+error.message);return}
- if(data.session){cloudUser=data.user;setCloudStatus("Connected");updateCloudUI();await refreshSharedMembership();alert("Cloud account created and signed in.");}
+ if(data.session){cloudUser=data.user;setCloudStatus("Connected");updateCloudUI();await refreshSharedMembership();await refreshMyGroupsUI();alert("Cloud account created and signed in.");}
  else{alert("Account created. Check your email to confirm the account, then return here and sign in.");}
 }
 async function saveCloudProfile(){
@@ -1876,7 +1924,7 @@ async function saveCloudProfile(){
  alert("Your name was saved.");
 }
 async function cloudSignOut(){
- if(sb)await sb.auth.signOut();cloudUser=null;sharedMembership=null;sharedGroup=null;updateCloudUI();
+ if(sb)await sb.auth.signOut();cloudUser=null;sharedMembership=null;sharedGroup=null;updateCloudUI();await refreshMyGroupsUI();
 }
 function initCloud(){
  const cfg=loadCloudConfig();
@@ -1889,6 +1937,7 @@ function initCloud(){
  $("saveCloudProfile").onclick=saveCloudProfile;
  $("loadSharedData").onclick=loadSharedGroupData;
  $("saveSharedData").onclick=saveSharedGroupData;
+ $("createNewGroup").onclick=createNewGroup;
  $("loadSharedData").disabled=true;
  $("saveSharedData").disabled=true;
 }
@@ -1974,5 +2023,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.14</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.15</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
