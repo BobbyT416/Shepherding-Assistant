@@ -1025,6 +1025,11 @@ function shepherdingBrotherOptions(selected=""){
  });
  return '<option value="">— None —</option>'+eligible.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===selected?' selected':'')+'>'+esc(p.name)+'</option>').join("");
 }
+function shepherdingBrotherName(value){
+ if(!value)return "";
+ const p=(db.publishers||[]).find(x=>x.id===value);
+ return p ? p.name : value;
+}
 function brotherOptions(selected=""){
  const a=[db.group.overseer,db.group.assistant,...(db.group.elders||[])].filter(Boolean);
  const names=[...new Set(a)];
@@ -1507,7 +1512,7 @@ function showHistory(publisherId){
  const p=db.publishers.find(x=>x.id===publisherId);if(!p)return;
  const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
  let body=history.length?history.map(c=>{
-   const brothers=[c.brother1,c.brother2].filter(Boolean).join(" & ")||"Not recorded";
+   const brothers=[c.brother1,c.brother2].filter(Boolean).map(shepherdingBrotherName).join(" & ")||"Not recorded";
    return '<div class="card"><h3>'+formatCallDateTime(c)+'</h3><p><b>Brothers:</b> '+esc(brothers)+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+'</p><p><b>Notes:</b><br>'+esc(c.notes||"No notes recorded.")+'</p><div class="actions"><button class="secondary" data-history-call="'+esc(c.id)+'">Open Visit Details</button><button class="danger" data-history-delete="'+esc(c.id)+'">Delete Visit</button></div></div>'
  }).join(""):'<div class="card"><p>No completed shepherding calls have been recorded for '+esc(p.name)+'.</p></div>';
  openModal('<h2>Shepherding History</h2><p><b>'+esc(p.name)+'</b></p>'+body+'<div class="actions"><button id="closeHistory" class="secondary">Close</button></div>');
@@ -2061,5 +2066,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.19</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.20</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
