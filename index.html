@@ -11,7 +11,7 @@ nav{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;background:white;borde
 button{border:0;border-radius:7px;padding:10px 14px;background:#2457d6;color:#fff;font-weight:700;cursor:pointer}
 button:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(35%)}
 button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b42318}.page{display:none;max-width:1050px;margin:auto;padding:20px 20px 110px}.page.active{display:block}
-.card{background:#fff;border:1px solid #d8dde5;border-radius:11px;padding:17px;margin:13px 0}
+.card{background:#fff;border:1px solid #d8dde5;border-radius:11px;padding:17px;margin:13px 0}.group-select-card{cursor:pointer;transition:box-shadow .15s,border-color .15s}.group-select-card:hover{border-color:#9aa8bb;box-shadow:0 2px 8px rgba(0,0,0,.06)}.group-select-card.current{border-color:#2457d6;box-shadow:0 0 0 1px #2457d6}.group-select-card:focus{outline:2px solid #2457d6;outline-offset:2px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.stat{font-size:29px;font-weight:700}
 label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
 input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;border:1px solid #bdc5d0;border-radius:7px;background:#fff;font:inherit}
@@ -928,6 +928,7 @@ textarea.publisher-address-field{
 "use strict";
 const DATA_KEY="shepherding_assistant_group_v2";
 const CLOUD_CONFIG_KEY="shepherding_assistant_supabase_config_v1";
+const ACTIVE_GROUP_KEY="shepherding_assistant_active_group_v1";
 let sb=null;
 let cloudUser=null;
 let sharedMembership=null;
@@ -1763,7 +1764,7 @@ async function cloudSignOut(){
  if(sb)await sb.auth.signOut();cloudUser=null;updateCloudUI();
 }
 async function refreshMyGroupsUI(){
- const card=$("myGroupsCard"),list=$("myGroupsList"),btn=$("createNewGroup");
+ const card=$("myGroupsCard"),list=$("myGroupsList");
  if(!card||!list)return;
  if(!sb||!cloudUser){
    card.style.display="none";
@@ -1778,32 +1779,62 @@ async function refreshMyGroupsUI(){
      list.innerHTML='<p class="small">You are not currently a member of any group.</p>';
      return;
    }
+   const activeId=sharedGroup?.id||localStorage.getItem(ACTIVE_GROUP_KEY)||"";
    list.innerHTML=data.map(g=>{
      const active=!!g.access_enabled;
+     const current=String(g.group_id)===String(activeId)&&active;
      const perm=String(g.permission_level||"").toLowerCase()==="full"?"Full access":String(g.permission_level||"").toLowerCase()==="read"?"Read only":"No editing access";
      const role=esc(g.member_role||"");
-     return '<div class="card" style="margin:8px 0;padding:11px"><b>'+esc(g.group_name||"Unnamed Group")+'</b><br><span class="small">'+role+' • '+(active?perm:"Access disabled")+'</span></div>';
+     const name=esc(g.group_name||"Unnamed Group");
+     return '<div class="card group-select-card'+(current?' current':'')+'" data-group-id="'+esc(g.group_id)+'" role="button" tabindex="0" aria-label="Open '+name+'"><b>'+name+'</b><br><span class="small">'+role+' • '+(active?perm:"Access disabled")+(current?' • Current group':'')+'</span></div>';
    }).join("");
+   list.querySelectorAll('[data-group-id]').forEach(el=>{
+     const open=()=>switchToGroup(el.getAttribute('data-group-id'));
+     el.addEventListener('click',open);
+     el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+   });
  }catch(err){
    list.innerHTML='<p class="small">Unable to load your groups: '+esc(err?.message||err)+'</p>';
  }
 }
-async function createNewGroup(){
+
+async function switchToGroup(groupId){
  if(!sb||!cloudUser){alert("Sign in to your Shepherding Assistant account first.");return}
- const name=prompt("Enter the name for the new Field Service Group:","");
- if(name===null)return;
- const groupName=name.trim();
- if(!groupName){alert("A group name is required.");return}
- const role=prompt("Enter your role for this group: type Elder or Ministerial Servant.","Elder");
- if(role===null)return;
- const memberRole=role.trim()==="Ministerial Servant"?"Ministerial Servant":role.trim()==="Elder"?"Elder":"";
- if(!memberRole){alert("The role must be Elder or Ministerial Servant.");return}
- if(!confirm("Create the new group \""+groupName+"\"? It will start with no publishers or shepherding records, and you will have Full access."))return;
- const {data,error}=await sb.rpc("create_new_group",{p_group_name:groupName,p_member_role:memberRole});
- if(error){alert("Unable to create the new group: "+error.message);return}
- await refreshMyGroupsUI();
- alert("New group created successfully. It is separate from your current group. Nothing in your current group was changed.");
+ if(!groupId)return;
+ try{
+   const {data:membership,error:memberError}=await sb.from("group_members").select("group_id,access_enabled,member_role,permission_level").eq("group_id",groupId).eq("user_id",cloudUser.id).maybeSingle();
+   if(memberError)throw memberError;
+   if(!membership||!membership.access_enabled){alert("You do not currently have access to that group.");return}
+   const {data:group,error:groupError}=await sb.from("groups").select("id,name").eq("id",groupId).maybeSingle();
+   if(groupError)throw groupError;
+   if(!group)throw Error("The group record could not be loaded.");
+   if(sharedGroup?.id===group.id){
+     localStorage.setItem(ACTIVE_GROUP_KEY,group.id);
+     await refreshMyGroupsUI();
+     return;
+   }
+   if(!confirm("Switch to \""+group.name+"\"? The selected group's shared data will replace this device's current group data."))return;
+   const {data:shared,error:sharedError}=await sb.from("group_data_shared").select("data,updated_at").eq("group_id",group.id).maybeSingle();
+   if(sharedError)throw sharedError;
+   if(!shared?.data)throw Error("No shared data was found for this group.");
+   const x=shared.data;
+   if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls))throw Error("The shared data for this group is not a valid Shepherding Assistant V2 record.");
+   sharedMembership=membership;
+   sharedGroup=group;
+   localStorage.setItem(ACTIVE_GROUP_KEY,group.id);
+   db=x;
+   persist();
+   setCloudStatus("Connected — "+group.name);
+   await refreshMyGroupsUI();
+   applyCloudAccessNavigation();
+   await refreshGroupAccessUI();
+   show("dashboard");
+   alert("Switched to "+group.name+" successfully.");
+ }catch(err){
+   alert("Unable to switch groups: "+(err?.message||err));
+ }
 }
+
 async function refreshSharedMembership(){
  sharedMembership=null;sharedGroup=null;
  const status=$("sharedGroupStatus");
@@ -1825,11 +1856,13 @@ async function refreshSharedMembership(){
    const groupIds=[...new Set(members.map(m=>m.group_id).filter(Boolean))];
    const {data:groups,error:groupError}=await sb.from("groups").select("id,name").in("id",groupIds);
    if(groupError)throw groupError;
-   const first=members[0];
+   const storedActiveId=localStorage.getItem(ACTIVE_GROUP_KEY);
+   const first=members.find(m=>m.group_id===storedActiveId) || members[0];
    const g=(groups||[]).find(x=>x.id===first.group_id);
    if(!g)throw Error("Your group membership was found, but the group record could not be loaded.");
    sharedMembership=first;sharedGroup=g;
-   if(status)status.textContent=g.name+(groupIds.length>1?" (first active group)":"")+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
+   localStorage.setItem(ACTIVE_GROUP_KEY,g.id);
+   if(status)status.textContent=g.name+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
    $("loadSharedData").disabled=false;
    $("saveSharedData").disabled=String(first.permission_level||"").toLowerCase()!=="full";
    const isFull=String(first.permission_level||"").toLowerCase()==="full";
@@ -2023,5 +2056,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.15</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.16</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
