@@ -808,7 +808,7 @@ textarea.publisher-address-field{
 </div></div></div>
 <div id="stats" class="grid"></div>
 <div class="card dashboard-section-card attention-card"><h3>Needs Attention</h3><div id="attention">None.</div></div>
-<div class="card dashboard-section-card upcoming-card"><h3>Upcoming Shepherding Calls</h3><div id="upcoming">None.</div></div>
+<div class="card dashboard-section-card upcoming-card"><h3>Scheduled Shepherding Calls</h3><div id="upcoming">None.</div></div>
 </section>
 
 <section id="publishers" class="page">
@@ -1226,8 +1226,7 @@ function callButton(c){
 }
 function renderCalls(){
  const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
- const today=new Date().toISOString().slice(0,10);
- $("upcoming").innerHTML=scheduled.filter(c=>c.date>=today).slice(0,8).map(callButton).join("")||"None.";
+ $("upcoming").innerHTML=scheduled.slice(0,8).map(callButton).join("")||"None.";
  document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  applyLocalEditPermissions();
 }
@@ -2062,5 +2061,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.18</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.19</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
