@@ -1427,7 +1427,7 @@ function editPublisher(id){
  const head=familyHeadForHouse(p.house,p.id);
  const inherited=head && !p.familyHead;
  const initialAddress=inherited ? (head.address||"") : (p.address||"");
- openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP">'+esc(initialAddress)+'</textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="cancel" class="secondary">Cancel</button></div>');
+ openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP">'+esc(initialAddress)+'</textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="deletePub" class="danger">Delete Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
  attachPhoneFormatter();
  const updateAddressState=()=>{
    const h=familyHeadForHouse($("fHouse").value,p.id);
@@ -1437,6 +1437,12 @@ function editPublisher(id){
  };
  $("fHouse").oninput=updateAddressState;
  $("fFamilyHead").onchange=updateAddressState;
+ $("deletePub").onclick=()=>{
+   if(!confirm("Delete this publisher? This will also remove their shepherding records from this group. This cannot be undone."))return;
+   db.calls=db.calls.filter(c=>c.publisherId!==p.id);
+   db.publishers=db.publishers.filter(x=>x.id!==p.id);
+   persist();closeModal();
+ };
  $("cancel").onclick=closeModal;
  $("schedulePublisherCall").onclick=()=>{closeModal();openScheduleCall(p.id)};
  $("savePub").onclick=()=>{
@@ -2056,5 +2062,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.16</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.17</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
