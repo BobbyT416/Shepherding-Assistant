@@ -794,7 +794,7 @@ textarea.publisher-address-field{
 <nav>
 <button data-page="dashboard">Dashboard</button><button data-page="publishers">Publishers</button>
 <button data-page="calendar">Calendar</button>
-<button data-page="group">Group Setup</button><button data-page="access">Group Access</button><button data-page="settings">Settings</button>
+<button data-page="group">Group Setup</button><button data-page="access">Admin Access</button><button data-page="settings">Settings</button>
 </nav>
 
 <section id="dashboard" class="page active">
@@ -861,14 +861,14 @@ textarea.publisher-address-field{
 </section>
 
 <section id="access" class="page">
-<h2>Group Access</h2>
+<h2>Admin Access</h2>
 <div class="card">
-<h3>Authorized Members</h3>
+<h3>App Members</h3>
 <p class="small">Only Full-access members can manage who has access to this group. Disabling access keeps the membership record for historical activity.</p>
 <div id="accessMemberList"><p class="small">Sign in and select an active shared group to manage access.</p></div>
 </div>
 <div class="card" id="accessAddCard">
-<h3>Add Group Member</h3>
+<h3>Add App Member</h3>
 <p class="small">Enter the email address used for the person's Supabase account. The account must already exist.</p>
 <div class="row"><div><label>Account Email</label><input id="accessEmail" type="email" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="elder@example.com"></div><div><label>Role</label><select id="accessRole"><option value="Elder">Elder</option><option value="Ministerial Servant">Ministerial Servant</option></select></div></div>
 <div class="row"><div><label>Permission</label><select id="accessPermission"><option value="Full">Full access</option><option value="Read">Read only</option></select></div><div></div></div>
@@ -897,7 +897,7 @@ textarea.publisher-address-field{
 <p class="small">Use your own Shepherding Assistant account. Your group administrator adds your account to the shared group after you create it.</p>
 <label>Email</label><input id="cloudEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false">
 <div class="row"><div><label>First Name</label><input id="cloudFirstName" type="text" autocomplete="given-name" placeholder="First name"></div><div><label>Last Name</label><input id="cloudLastName" type="text" autocomplete="family-name" placeholder="Last name"></div></div>
-<p class="small">Your name is used to identify you in Group Access and activity history.</p>
+<p class="small">Your name is used to identify you in Admin Access and activity history.</p>
 <label>Password</label><div class="password-row"><input id="cloudPassword" type="password" autocomplete="current-password"><button id="toggleCloudPassword" type="button" class="secondary" aria-pressed="false">Show</button></div>
 <p class="small">Use Show if you need to verify the password you entered.</p>
 <div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="saveCloudProfile" class="secondary" style="display:none">Save Name</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
@@ -1604,7 +1604,7 @@ async function refreshGroupAccessUI(){
  if(!list)return;
  if(!sb||!cloudUser||!sharedGroup||!sharedMembership){
    if(cloudUser && !sharedMembership){
-     list.innerHTML='<p class="small"><b>Access disabled</b><br>Your account is signed in, but it is not currently an active member of this group. Group Access is available only to active Full-access members.</p>';
+     list.innerHTML='<p class="small"><b>Access disabled</b><br>Your account is signed in, but it is not currently an active member of this group. Admin Access is available only to active Full-access members.</p>';
    }else{
      list.innerHTML='<p class="small">Sign in and load your shared group access first.</p>';
    }
@@ -2062,5 +2062,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.17</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.18</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
