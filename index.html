@@ -905,7 +905,7 @@ textarea.publisher-address-field{
 <div id="cloudDataActions" style="display:none">
 <p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
 <div class="actions"><button id="loadSharedData" class="secondary">Load Shared Group Data</button><button id="saveSharedData">Save Changes to Shared Group</button></div>
-<p id="sharedAccessHelp" class="small">Shared group data is stored in the group's cloud record. Loading replaces this device's current group data after confirmation. Saving sends this device's current group data to the shared group.</p>
+<p id="sharedAccessHelp" class="small">Shared group data is stored in the group's cloud record. Loading replaces this device's current group data after confirmation. Saving uses version protection so a stale copy cannot overwrite another App Member's newer changes.</p>
 <p id="sharedSaveNotice" class="small" style="margin-top:6px"></p>
 </div>
 </div>
@@ -933,6 +933,7 @@ let sb=null;
 let cloudUser=null;
 let sharedMembership=null;
 let sharedGroup=null;
+let sharedGroupVersion=null;
 let returnToDashboardAfterCallEdit=false;
 let db=loadData();
 
@@ -1851,13 +1852,14 @@ async function switchToGroup(groupId){
      return;
    }
    if(!confirm("Switch to \""+group.name+"\"? The selected group's shared data will replace this device's current group data."))return;
-   const {data:shared,error:sharedError}=await sb.from("group_data_shared").select("data,updated_at").eq("group_id",group.id).maybeSingle();
+   const {data:shared,error:sharedError}=await sb.from("group_data_shared").select("data,updated_at,version").eq("group_id",group.id).maybeSingle();
    if(sharedError)throw sharedError;
    if(!shared?.data)throw Error("No shared data was found for this group.");
    const x=shared.data;
    if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls))throw Error("The shared data for this group is not a valid Shepherding Assistant V2 record.");
    sharedMembership=membership;
    sharedGroup=group;
+   sharedGroupVersion=Number(shared?.version)||null;
    localStorage.setItem(ACTIVE_GROUP_KEY,group.id);
    db=x;
    persist();
@@ -1873,7 +1875,7 @@ async function switchToGroup(groupId){
 }
 
 async function refreshSharedMembership(){
- sharedMembership=null;sharedGroup=null;
+ sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;
  const status=$("sharedGroupStatus");
  if(status)status.textContent="Checking group access…";
  if(!sb||!cloudUser){return}
@@ -1898,6 +1900,7 @@ async function refreshSharedMembership(){
    const g=(groups||[]).find(x=>x.id===first.group_id);
    if(!g)throw Error("Your group membership was found, but the group record could not be loaded.");
    sharedMembership=first;sharedGroup=g;
+   sharedGroupVersion=null;
    localStorage.setItem(ACTIVE_GROUP_KEY,g.id);
    if(status)status.textContent=g.name+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
    $("loadSharedData").disabled=false;
@@ -1910,7 +1913,7 @@ async function refreshSharedMembership(){
    applyCloudAccessNavigation();
    await refreshGroupAccessUI();
  }catch(err){
-   sharedMembership=null;sharedGroup=null;
+   sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;
    if(status)status.textContent="Unable to check group access";
    $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
    const help=$("sharedAccessHelp"); if(help)help.textContent="The app could not verify your shared-group access. Check your connection or ask a Full-access group member to verify your membership.";
@@ -1925,23 +1928,33 @@ async function loadSharedGroupData(){
  if(!sb||!cloudUser){alert("Sign in to your cloud account first.");return}
  if(!sharedMembership||!sharedGroup){await refreshSharedMembership()}
  if(!sharedMembership||!sharedGroup){alert("No active shared group membership was found for this account.");return}
- const {data,error}=await sb.from("group_data_shared").select("data,updated_at").eq("group_id",sharedGroup.id).maybeSingle();
+ const {data,error}=await sb.from("group_data_shared").select("data,updated_at,version").eq("group_id",sharedGroup.id).maybeSingle();
  if(error){alert("Shared group download failed: "+error.message);return}
  if(!data?.data){alert("No shared group data was found for this group.");return}
  const x=data.data;
  if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls)){alert("The shared data is not a valid Shepherding Assistant V2 record.");return}
  if(!confirm("Replace this device's current group data with the shared group copy? This does not change the shared copy."))return;
- db=x;persist();setCloudStatus("Connected — shared group data loaded");alert("Shared group data loaded successfully.");
+ db=x;persist();sharedGroupVersion=Number(data.version)||null;setCloudStatus("Connected — shared group data loaded (version "+(sharedGroupVersion||"?")+")");alert("Shared group data loaded successfully.");
 }
 async function saveSharedGroupData(){
  if(!sb||!cloudUser){alert("Sign in to your cloud account first.");return}
  if(!sharedMembership||!sharedGroup){await refreshSharedMembership()}
  if(!sharedMembership||!sharedGroup){alert("No active shared group membership was found for this account.");return}
  if(String(sharedMembership.permission_level||"").toLowerCase()!=="full"){alert("Your account has read-only access to this group.");return}
- if(!confirm("Save this device's current group data to the shared group? This will replace the shared group's current copy."))return;
- const {error}=await sb.from("group_data_shared").upsert({group_id:sharedGroup.id,data:db,updated_at:new Date().toISOString()},{onConflict:"group_id"});
- if(error){alert("Shared group save failed: "+error.message);return}
- setCloudStatus("Connected — shared group data saved");alert("Changes saved to the shared group successfully.");
+ if(!Number.isInteger(sharedGroupVersion)){alert("This device does not have a verified shared-data version yet. Load the latest shared group data before saving your changes.");return}
+ if(!confirm("Save this device's current group data to the shared group? If another App Member has changed the group since you loaded it, the save will be rejected instead of overwriting their changes."))return;
+ const {data:newVersion,error}=await sb.rpc("save_shared_group_data",{p_group_id:sharedGroup.id,p_expected_version:sharedGroupVersion,p_data:db});
+ if(error){
+   if(String(error.message||"").toUpperCase().includes("CONFLICT")){
+     alert("Your changes were not saved. This group was changed by another App Member after you loaded it. Load the latest shared group data, then make your changes again.");
+   }else{
+     alert("Shared group save failed: "+(error.message||error));
+   }
+   return;
+ }
+ sharedGroupVersion=Number(newVersion)||sharedGroupVersion+1;
+ setCloudStatus("Connected — shared group saved (version "+sharedGroupVersion+")");
+ alert("Changes saved to the shared group successfully. Shared data is now version "+sharedGroupVersion+".");
 }
 async function connectSupabase(){
  const url=$("supabaseUrl").value.trim(),key=$("supabaseKey").value.trim();
@@ -1956,11 +1969,11 @@ async function connectSupabase(){
    setCloudStatus("Connected");
    updateCloudUI();
    if(cloudUser){await refreshSharedMembership();await refreshMyGroupsUI();}
- }catch(err){sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;setCloudStatus("Connection failed");updateCloudUI();alert("Supabase connection failed: "+(err?.message||err));}
+ }catch(err){sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;setCloudStatus("Connection failed");updateCloudUI();alert("Supabase connection failed: "+(err?.message||err));}
 }
 async function disconnectSupabase(){
  if(sb){try{await sb.auth.signOut()}catch(e){}}
- sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;localStorage.removeItem(CLOUD_CONFIG_KEY);$("supabaseKey").value="";setCloudStatus("Not connected");updateCloudUI();
+ sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;localStorage.removeItem(CLOUD_CONFIG_KEY);$("supabaseKey").value="";setCloudStatus("Not connected");updateCloudUI();
 }
 async function cloudSignIn(){
  if(!sb){alert("Connect to Supabase first.");return}
@@ -1994,7 +2007,7 @@ async function saveCloudProfile(){
  alert("Your name was saved.");
 }
 async function cloudSignOut(){
- if(sb)await sb.auth.signOut();cloudUser=null;sharedMembership=null;sharedGroup=null;updateCloudUI();await refreshMyGroupsUI();
+ if(sb)await sb.auth.signOut();cloudUser=null;sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;updateCloudUI();await refreshMyGroupsUI();
 }
 function initCloud(){
  const cfg=loadCloudConfig();
@@ -2093,5 +2106,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.21</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.22</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
