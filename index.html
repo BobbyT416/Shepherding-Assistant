@@ -1028,20 +1028,51 @@ async function autoSaveSharedGroupData(){
  if(!isLocalChangesPending())return;
  if(!Number.isInteger(sharedGroupVersion))return;
  const expectedVersion=sharedGroupVersion;
- const {data:newVersion,error}=await sb.rpc("save_shared_group_data",{p_group_id:sharedGroup.id,p_expected_version:expectedVersion,p_data:db});
- if(error){
-   if(String(error.message||"").toUpperCase().includes("CONFLICT")){
+ try{
+   const {data:remote,error:checkError}=await sb.from("group_data_shared").select("version").eq("group_id",sharedGroup.id).maybeSingle();
+   if(checkError)throw checkError;
+   const remoteVersion=Number(remote?.version);
+   if(Number.isInteger(remoteVersion) && remoteVersion>expectedVersion){
      setCloudStatus("Connected — newer shared changes are available");
-     alert("Your local changes were not uploaded because another App Member changed this group. Your changes are still on this device. Load the latest shared group data, then make your changes again.");
-   }else{
-     setCloudStatus("Connected — local changes not yet uploaded");
-     console.error(error);
+     if(lastRemoteNoticeVersion!==remoteVersion){
+       lastRemoteNoticeVersion=remoteVersion;
+       const useLatest=confirm("A newer copy of this group is available from another App Member.\n\nYour local changes have NOT been replaced.\n\nClick OK to load the newer shared copy and discard your local changes.\nClick Cancel to keep your local changes on this device.");
+       if(useLatest){
+         const {data:shared,error:loadError}=await sb.from("group_data_shared").select("data,updated_at,version").eq("group_id",sharedGroup.id).maybeSingle();
+         if(loadError)throw loadError;
+         if(shared?.data){
+           suppressCloudSync=true;
+           db=shared.data;
+           persist(false);
+           suppressCloudSync=false;
+           sharedGroupVersion=Number(shared.version)||remoteVersion;
+           setLocalChangesPending(false);
+           lastRemoteNoticeVersion=null;
+           setCloudStatus("Connected — shared changes loaded (version "+sharedGroupVersion+")");
+         }
+       }else{
+         setCloudStatus("Connected — local changes kept; newer shared version is "+remoteVersion);
+       }
+     }
+     return;
    }
-   return;
+   const {data:newVersion,error}=await sb.rpc("save_shared_group_data",{p_group_id:sharedGroup.id,p_expected_version:expectedVersion,p_data:db});
+   if(error){
+     if(String(error.message||"").toUpperCase().includes("CONFLICT")){
+       setCloudStatus("Connected — newer shared changes are available");
+       lastRemoteNoticeVersion=null;
+       return autoSaveSharedGroupData();
+     }
+     throw error;
+   }
+   sharedGroupVersion=Number(newVersion)||expectedVersion+1;
+   setLocalChangesPending(false);
+   lastRemoteNoticeVersion=null;
+   setCloudStatus("Connected — changes synced (version "+sharedGroupVersion+")");
+ }catch(error){
+   setCloudStatus("Connected — local changes not yet uploaded");
+   console.error(error);
  }
- sharedGroupVersion=Number(newVersion)||expectedVersion+1;
- setLocalChangesPending(false);
- setCloudStatus("Connected — changes synced (version "+sharedGroupVersion+")");
 }
 async function checkForSharedUpdates(reason="resume"){
  if(refreshCheckInProgress||suppressCloudSync||!sb||!cloudUser||!sharedGroup||!sharedMembership)return;
@@ -2216,5 +2247,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.25</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.26</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
