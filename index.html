@@ -1003,6 +1003,10 @@ function syncFamilyAddressFromHead(p){
 }
 
 function currentDirtyKey(){return sharedGroup?.id ? LOCAL_DIRTY_PREFIX+sharedGroup.id : null}
+const LOCAL_VERSION_PREFIX="shepherding_assistant_shared_version_v1_";
+function currentVersionKey(){return sharedGroup?.id ? LOCAL_VERSION_PREFIX+sharedGroup.id : null}
+function getStoredSharedVersion(){const k=currentVersionKey();if(!k)return null;const n=Number(localStorage.getItem(k));return Number.isInteger(n)?n:null}
+function storeSharedVersion(v){const k=currentVersionKey();if(k&&Number.isInteger(Number(v)))localStorage.setItem(k,String(Number(v)))}
 function isLocalChangesPending(){const k=currentDirtyKey();return !!(k&&localStorage.getItem(k)==="1")}
 function setLocalChangesPending(value){const k=currentDirtyKey();if(!k)return;if(value)localStorage.setItem(k,"1");else localStorage.removeItem(k)}
 function persist(markDirty=true){
@@ -1026,7 +1030,20 @@ async function autoSaveSharedGroupData(){
  if(suppressCloudSync||!sb||!cloudUser||!sharedGroup||!sharedMembership)return;
  if(String(sharedMembership.permission_level||"").toLowerCase()!=="full")return;
  if(!isLocalChangesPending())return;
- if(!Number.isInteger(sharedGroupVersion))return;
+ if(!Number.isInteger(sharedGroupVersion)){
+   const stored=getStoredSharedVersion();
+   if(Number.isInteger(stored)) sharedGroupVersion=stored;
+ }
+ if(!Number.isInteger(sharedGroupVersion)){
+   try{
+     const {data:latest,error:latestError}=await sb.from("group_data_shared").select("version").eq("group_id",sharedGroup.id).maybeSingle();
+     if(latestError)throw latestError;
+     const latestVersion=Number(latest?.version);
+     if(!Number.isInteger(latestVersion)){setCloudStatus("Connected — unable to verify shared version");return;}
+     sharedGroupVersion=latestVersion;
+     storeSharedVersion(sharedGroupVersion);
+   }catch(e){console.error(e);setCloudStatus("Connected — unable to verify shared version");return;}
+ }
  const expectedVersion=sharedGroupVersion;
  try{
    const {data:remote,error:checkError}=await sb.from("group_data_shared").select("version").eq("group_id",sharedGroup.id).maybeSingle();
@@ -1046,6 +1063,7 @@ async function autoSaveSharedGroupData(){
            persist(false);
            suppressCloudSync=false;
            sharedGroupVersion=Number(shared.version)||remoteVersion;
+           storeSharedVersion(sharedGroupVersion);
            setLocalChangesPending(false);
            lastRemoteNoticeVersion=null;
            setCloudStatus("Connected — shared changes loaded (version "+sharedGroupVersion+")");
@@ -1066,6 +1084,7 @@ async function autoSaveSharedGroupData(){
      throw error;
    }
    sharedGroupVersion=Number(newVersion)||expectedVersion+1;
+   storeSharedVersion(sharedGroupVersion);
    setLocalChangesPending(false);
    lastRemoteNoticeVersion=null;
    setCloudStatus("Connected — changes synced (version "+sharedGroupVersion+")");
@@ -1087,6 +1106,7 @@ async function checkForSharedUpdates(reason="resume"){
      const same=JSON.stringify(db)===JSON.stringify(shared.data);
      if(same){
        sharedGroupVersion=remoteVersion;
+       storeSharedVersion(sharedGroupVersion);
        setLocalChangesPending(false);
        setCloudStatus("Connected — synced (version "+remoteVersion+")");
        return;
@@ -1117,6 +1137,7 @@ async function checkForSharedUpdates(reason="resume"){
          persist(false);
          suppressCloudSync=false;
          sharedGroupVersion=remoteVersion;
+         storeSharedVersion(sharedGroupVersion);
          setLocalChangesPending(false);
          lastRemoteNoticeVersion=null;
          setCloudStatus("Connected — shared changes loaded (version "+remoteVersion+")");
@@ -1995,6 +2016,7 @@ async function switchToGroup(groupId){
    sharedMembership=membership;
    sharedGroup=group;
    sharedGroupVersion=Number(shared?.version)||null;
+   storeSharedVersion(sharedGroupVersion);
    localStorage.setItem(ACTIVE_GROUP_KEY,group.id);
    suppressCloudSync=true;
    db=x;
@@ -2073,7 +2095,7 @@ async function loadSharedGroupData(){
  const x=data.data;
  if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls)){alert("The shared data is not a valid Shepherding Assistant V2 record.");return}
  if(!confirm("Replace this device's current group data with the shared group copy? This does not change the shared copy."))return;
- suppressCloudSync=true;db=x;persist(false);suppressCloudSync=false;sharedGroupVersion=Number(data.version)||null;setLocalChangesPending(false);lastRemoteNoticeVersion=null;setCloudStatus("Connected — shared group data loaded (version "+(sharedGroupVersion||"?")+")");alert("Shared group data loaded successfully.");
+ suppressCloudSync=true;db=x;persist(false);suppressCloudSync=false;sharedGroupVersion=Number(data.version)||null;storeSharedVersion(sharedGroupVersion);setLocalChangesPending(false);lastRemoteNoticeVersion=null;setCloudStatus("Connected — shared group data loaded (version "+(sharedGroupVersion||"?")+")");alert("Shared group data loaded successfully.");
 }
 async function saveSharedGroupData(){
  if(!sb||!cloudUser){alert("Sign in to your cloud account first.");return}
@@ -2247,5 +2269,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.26</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.27</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
