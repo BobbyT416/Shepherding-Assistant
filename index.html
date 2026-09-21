@@ -910,7 +910,7 @@ textarea.publisher-address-field{
 </div>
 </div>
 <div class="card"><h3>Transfer / Backup</h3>
-<p>Shared Cloud can automatically check for newer group changes and sync your completed changes when you are signed in with Full access. Use the backup options below for an independent copy of the group data.</p>
+<p>Nothing is uploaded automatically. Use one backup option to save or share the group data using the locations available on your device.</p>
 <div class="backup-options">
 <label class="backup-switch"><input id="includeBackupNotes" type="checkbox"><span class="backup-slider"></span><span><b>Include Notes in Backup</b><br><span class="small">Turn this on only when you want personal notes included.</span></span></label>
 </div>
@@ -929,16 +929,16 @@ textarea.publisher-address-field{
 const DATA_KEY="shepherding_assistant_group_v2";
 const CLOUD_CONFIG_KEY="shepherding_assistant_supabase_config_v1";
 const ACTIVE_GROUP_KEY="shepherding_assistant_active_group_v1";
-const LOCAL_DIRTY_PREFIX="shepherding_assistant_local_dirty_v1:";
-let suppressCloudSync=false;
-let autoSaveTimer=null;
-let refreshCheckInProgress=false;
-let lastRemoteNoticeVersion=null;
 let sb=null;
 let cloudUser=null;
 let sharedMembership=null;
 let sharedGroup=null;
 let sharedGroupVersion=null;
+let suppressCloudSync=false;
+let autoSaveTimer=null;
+let refreshCheckInProgress=false;
+let lastRemoteNoticeVersion=null;
+const LOCAL_DIRTY_PREFIX="shepherding_assistant_dirty_group_v1_";
 let returnToDashboardAfterCallEdit=false;
 let db=loadData();
 
@@ -1004,13 +1004,15 @@ function syncFamilyAddressFromHead(p){
 
 function currentDirtyKey(){return sharedGroup?.id ? LOCAL_DIRTY_PREFIX+sharedGroup.id : null}
 function isLocalChangesPending(){const k=currentDirtyKey();return !!(k&&localStorage.getItem(k)==="1")}
-function setLocalChangesPending(value){const k=currentDirtyKey();if(!k)return; if(value)localStorage.setItem(k,"1");else localStorage.removeItem(k)}
+function setLocalChangesPending(value){const k=currentDirtyKey();if(!k)return;if(value)localStorage.setItem(k,"1");else localStorage.removeItem(k)}
 function persist(markDirty=true){
  try{
    localStorage.setItem(DATA_KEY,JSON.stringify(db));
-   if(markDirty && !suppressCloudSync && sharedGroup) setLocalChangesPending(true);
    render();
-   if(markDirty && !suppressCloudSync && sharedGroup) queueAutomaticCloudSave();
+   if(markDirty && !suppressCloudSync && sharedGroup){
+     setLocalChangesPending(true);
+     queueAutomaticCloudSave();
+   }
  }catch(e){
    alert("Unable to save the publisher information on this device.");
    throw e;
@@ -1060,10 +1062,6 @@ async function checkForSharedUpdates(reason="resume"){
      }
      if(localDirty){
        setCloudStatus("Connected — local changes pending");
-       if(lastRemoteNoticeVersion!==remoteVersion){
-         lastRemoteNoticeVersion=remoteVersion;
-         alert("A newer copy of this group is available from another App Member. Your local changes have not been replaced. Load the latest shared group data before continuing.");
-       }
        return;
      }
      suppressCloudSync=true;
@@ -1094,10 +1092,755 @@ async function checkForSharedUpdates(reason="resume"){
    lastRemoteNoticeVersion=null;
    setCloudStatus("Connected — shared changes loaded (version "+remoteVersion+")");
  }catch(err){
-   console.error("Shared refresh check failed",err);
- }finally{refreshCheckInProgress=false}
+   suppressCloudSync=false;
+   console.error("Automatic shared-data check failed",err);
+ }finally{
+   refreshCheckInProgress=false;
+ }
+}
+function $(id){return document.getElementById(id)}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function uid(){return (crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+"-"+Math.random()}
+function people(){
+ return [...new Set([...db.publishers.map(p=>p.name),...(db.group.elders||[])].filter(Boolean))]
+}
+function groupLeaderOptions(selected=""){
+ const eligible=[...new Set((db.publishers||[]).filter(p=>{
+   const role=(p.role||"").trim().toLowerCase();
+   return role==="elder" || role==="ministerial servant";
+ }).map(p=>p.name).filter(Boolean))];
+ return '<option value="">— Select —</option>'+eligible.map(n=>'<option value="'+esc(n)+'"'+(n===selected?' selected':'')+'>'+esc(n)+'</option>').join("")
+}
+function shepherdingBrotherOptions(selected=""){
+ const eligible=(db.publishers||[]).filter(p=>{
+   const role=(p.role||"").trim().toLowerCase();
+   return role==="elder" || role==="ministerial servant";
+ });
+ return '<option value="">— None —</option>'+eligible.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===selected?' selected':'')+'>'+esc(p.name)+'</option>').join("");
+}
+function shepherdingBrotherName(value){
+ if(!value)return "";
+ const p=(db.publishers||[]).find(x=>x.id===value);
+ return p ? p.name : value;
+}
+function brotherOptions(selected=""){
+ const a=[db.group.overseer,db.group.assistant,...(db.group.elders||[])].filter(Boolean);
+ const names=[...new Set(a)];
+ return '<option value="">— Select —</option>'+names.map(n=>'<option value="'+esc(n)+'"'+(n===selected?' selected':'')+'>'+esc(n)+'</option>').join("")
+}
+function isCancelledCall(c){
+ const s=String(c?.status||"").trim().toLowerCase();
+ return s==="cancelled" || s==="canceled";
+}
+function syncPublisherLast(publisherId){
+ const p=db.publishers.find(x=>x.id===publisherId);
+ if(!p)return;
+ const completed=db.calls.filter(c=>c.publisherId===publisherId&&String(c.status||"").trim().toLowerCase()==="completed"&&(c.completedDate||c.date)).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
+ // Last Shepherding Contact is derived exclusively from completed history.
+ // When a visit is completed retroactively, use its actual completion date.
+ // Older completed records without completedDate fall back to their original date.
+ p.last=completed.length?(completed[0].completedDate||completed[0].date):"";
+}
+function syncAllPublisherLast(){
+ (db.publishers||[]).forEach(p=>{
+   const completed=db.calls.filter(c=>c.publisherId===p.id&&String(c.status||"").trim().toLowerCase()==="completed"&&(c.completedDate||c.date)).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
+   // Always derive the field from completed history. This also repairs older
+   // records that retained a stale manual/contact date after a visit was cancelled.
+   p.last=completed.length?(completed[0].completedDate||completed[0].date):"";
+ });
+}
+function status(p){
+ if(!p.last)return ["over","Never contacted"];
+ const months=(Date.now()-new Date(p.last+"T12:00:00"))/86400000/30.44;
+ return months>=Number(db.reminderMonths)?["over","Overdue"]:months>=Number(db.reminderMonths)-.5?["soon","Due Soon"]:["ok","Up to Date"];
+}
+function show(page){
+ if(cloudUser && !sharedMembership && page!=="settings"){
+   page="settings";
+   const status=$("sharedGroupStatus");
+   if(status)status.scrollIntoView({behavior:"smooth",block:"center"});
+ }
+ document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+ $(page).classList.add("active");
+ if(typeof applyLocalEditPermissions==="function")applyLocalEditPermissions();
+ if(typeof applyCloudAccessNavigation==="function")applyCloudAccessNavigation();
+}
+function applyCloudAccessNavigation(){
+ const locked=!!(cloudUser && !sharedMembership);
+ document.querySelectorAll("nav button").forEach(b=>{
+   const isSettings=b.dataset.page==="settings";
+   b.disabled=locked && !isSettings;
+   b.title=locked && !isSettings?"Shared-group access is disabled for this account.":"";
+ });
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
+ if(b.disabled)return;
+ show(b.dataset.page)
+}));
+
+function isSharedReadOnly(){
+ // When signed in to the shared cloud, lack of an active membership is also locked.
+ // This prevents stale local permissions from re-enabling editing after access is disabled.
+ return !!(cloudUser && (!sharedMembership || String(sharedMembership.permission_level||"").toLowerCase()==="read"));
+}
+function readOnlyGuard(){
+ if(isSharedReadOnly()){
+   alert("Read-only access: you can view the group, but you cannot make changes.");
+   return true;
+ }
+ return false;
+}
+function applyLocalEditPermissions(){
+ const ro=isSharedReadOnly();
+ ["saveGroup","addElder","elderSelect","groupName","groupOverseer","groupAssistant","addPublisher","importData","clearData","saveCall","savePub","updateCall","cancelVisit","deleteCall"].forEach(id=>{const el=$(id);if(el)el.disabled=ro;});
+ document.querySelectorAll("[data-remove-elder]").forEach(b=>b.disabled=ro);
+ document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.disabled=ro);
+ document.querySelectorAll("[data-stat-publisher]").forEach(b=>b.disabled=ro);
+ document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.disabled=ro);
+ document.querySelectorAll("[data-empty-date]").forEach(b=>b.disabled=ro);
+ const notice=$("groupReadOnlyNotice");
+ if(notice)notice.textContent=ro?"Read-only access: group information and publisher records cannot be changed on this device.":"";
+ const pubNotice=$("publisherReadOnlyNotice");
+ if(pubNotice)pubNotice.textContent=ro?"Read-only access: you can view publishers and history, but you cannot add or edit records.":"";
+ const calNotice=$("calendarReadOnlyNotice");
+ if(calNotice)calNotice.textContent=ro?"Read-only access: you can view scheduled visits, but you cannot schedule or change them.":"";
+}
+function renderGroup(){
+ $("headerGroup").textContent=db.group.name||"One Field Service Group • Local Only";
+ $("dashGroup").textContent=db.group.name||"Not configured";
+ $("dashOverseer").textContent=db.group.overseer||"Not configured";
+ $("dashAssistant").textContent=db.group.assistant||"Not configured";
+ $("groupName").value=db.group.name;
+ $("groupOverseer").innerHTML=groupLeaderOptions(db.group.overseer);
+ $("groupAssistant").innerHTML=groupLeaderOptions(db.group.assistant);
+ $("reminderMonths").value=db.reminderMonths;
+ $("elderList").innerHTML=(db.group.elders||[]).map((n,i)=>'<p>'+esc(n)+' <button class="secondary" data-remove-elder="'+i+'">Remove</button></p>').join("")||'<p class="small">No other elders added.</p>';
+ const elderChoices=db.publishers.filter(p=>p.role==="Elder").map(p=>p.name).filter(n=>n!==db.group.overseer&&n!==db.group.assistant&&!db.group.elders.includes(n));
+ $("elderSelect").innerHTML='<option value="">— Select Elder —</option>'+elderChoices.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
+ document.querySelectorAll("[data-remove-elder]").forEach(b=>b.onclick=()=>{db.group.elders.splice(Number(b.dataset.removeElder),1);persist()});
+ applyLocalEditPermissions();
+}
+function publisherFamilyKey(p){
+ const h=(p&&p.house||"").trim();
+ return h ? h.toLocaleLowerCase() : "#"+(p&&p.name||"").trim().toLocaleLowerCase();
+}
+function publisherFamilyLabel(p){
+ const h=(p&&p.house||"").trim();
+ return h ? (h.replace(/\s+$/,"")) : "Household not specified";
+}
+function sortedPublishers(){
+ return [...db.publishers].sort((a,b)=>{
+   const ah=(a.house||"").trim(), bh=(b.house||"").trim();
+   const ag=ah.toLocaleLowerCase(), bg=bh.toLocaleLowerCase();
+   if(ah && !bh)return -1;
+   if(!ah && bh)return 1;
+   if(ag!==bg)return ag.localeCompare(bg,undefined,{sensitivity:"base"});
+   if(!!a.familyHead!==!!b.familyHead)return a.familyHead?-1:1;
+   return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});
+ });
+}
+function renderPublishers(){
+ const sorted=[...db.publishers].sort((x,y)=>{
+   const xp=publisherSortParts(x), yp=publisherSortParts(y);
+   const l=xp.last.localeCompare(yp.last,undefined,{sensitivity:"base"});
+   return l!==0?l:xp.first.localeCompare(yp.first,undefined,{sensitivity:"base"});
+ });
+ const active=sorted.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
+ const inactive=sorted.filter(p=>(p.role||"").trim().toLowerCase()==="inactive");
+ $("publisherCount").textContent=db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group";
+ if(!sorted.length){$("publisherRows").innerHTML='<tr><td colspan="2">No publishers yet.</td></tr>';return;}
+ let rows="";
+ const addRows=(list,isInactive)=>{
+   list.forEach(p=>{
+     const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;
+     const hasScheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
+     let dotClass="current",dotTitle="Up to date";
+     if(isInactive){dotClass="inactive";dotTitle="Inactive";}
+     else if(hasScheduled){dotClass="scheduled";dotTitle="Scheduled visit";}
+     else if(status(p)[0]==="over"){dotClass="attention";dotTitle="Needs attention";}
+     const display=publisherDisplayName(p);
+     const head=p.familyHead?'<span class="family-head-badge">Family Head</span>':"";
+     rows+='<tr class="publisher-directory-row'+(isInactive?' inactive-publisher-row':'')+'"><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(display)+'</button>'+head+'</td><td class="publisher-history-cell"><button class="secondary" data-history="'+esc(p.id)+'">History'+(count?' ('+count+')':'')+'</button></td></tr>';
+   });
+ };
+ addRows(active,false);
+ if(inactive.length){
+   rows+='<tr class="inactive-section-heading"><td colspan="2">Inactive Publishers</td></tr>';
+   addRows(inactive,true);
+ }
+ $("publisherRows").innerHTML=rows;
+ document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
+ document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
+ applyLocalEditPermissions();
+}
+function updateFriendlyCallDate(dateId,timeId,outId){
+ const date=$(dateId),out=$(outId);
+ if(!date||!out)return;
+ if(!date.value){out.textContent="";return}
+ const dt=new Date(date.value+"T12:00");
+ if(Number.isNaN(dt.getTime())){out.textContent="";return}
+ const day=dt.toLocaleDateString("en-US",{weekday:"long"});
+ const md=dt.toLocaleDateString("en-US",{month:"long",day:"numeric"});
+ out.textContent=day+", "+md;
+}
+function normalizePublisherDate(value){
+ const v=String(value||"").trim();
+ if(!v)return "";
+ if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
+ const m=v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+ if(m){
+   const mm=String(Number(m[1])).padStart(2,"0");
+   const dd=String(Number(m[2])).padStart(2,"0");
+   return m[3]+"-"+mm+"-"+dd;
+ }
+ const d=new Date(v);
+ if(!Number.isNaN(d.getTime())){
+   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+ }
+ return "";
+}
+function formatDisplayDate(dateString){
+ const d=new Date(dateString+"T12:00:00");
+ if(Number.isNaN(d.getTime())) return dateString;
+ return d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+}
+function formatCallDateTime(c){
+ const displayDate=(c.status==="Completed"&&c.completedDate)||c.date;
+ const d=new Date(displayDate+"T"+(c.time||"12:00"));
+ if(Number.isNaN(d.getTime())) return esc(displayDate)+" "+esc(c.time||"");
+ const day=d.toLocaleDateString("en-US",{weekday:"long"});
+ const date=d.toLocaleDateString("en-US",{month:"long",day:"numeric"});
+ const time=d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase();
+ return day+", "+date+" at "+time;
+}
+function formatScheduledDate(c){
+ return c.date?formatDisplayDate(c.date):"Not recorded";
+}
+function formatCompletedDate(c){
+ return (c.completedDate||c.date)?formatDisplayDate(c.completedDate||c.date):"Not recorded";
+}
+function currentUserDisplayName(){
+ if(!cloudUser)return "";
+ const meta=cloudUser.user_metadata||{};
+ const first=String(meta.first_name||"").trim(), last=String(meta.last_name||"").trim();
+ const full=String(meta.full_name||meta.name||[first,last].filter(Boolean).join(" ")||"").trim();
+ return full||cloudUser.email||"Cloud user";
+}
+function callButton(c){
+ const attribution=c.scheduledBy?' <div class="small" style="margin-top:4px">Scheduled by: '+esc(c.scheduledBy)+'</div>':'';
+ return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+attribution+'</button>';
+}
+function renderCalls(){
+ const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+ $("upcoming").innerHTML=scheduled.slice(0,8).map(callButton).join("")||"None.";
+ document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+ applyLocalEditPermissions();
+}
+let calendarMode="list";
+function shiftCalendarMonth(delta){
+ const input=$("calendarMonth");
+ const m=input.value||new Date().toISOString().slice(0,7);
+ const [yr,mo]=m.split("-").map(Number);
+ const d=new Date(yr,mo-1+delta,1);
+ input.value=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+ renderCalendar();
+}
+function renderCalendar(){
+ let m=$("calendarMonth").value;
+ if(!m){m=new Date().toISOString().slice(0,7);$("calendarMonth").value=m}
+ $("listViewBtn").className=calendarMode==="list"?"":"secondary";
+ $("monthViewBtn").className=calendarMode==="calendar"?"":"secondary";
+ if(calendarMode==="list"){
+   const a=db.calls.filter(c=>c.date.startsWith(m)).sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+   $("calendarContent").innerHTML=a.length?'<div style="margin-top:14px">'+a.map(callButton).join("")+'</div>':"<p>No shepherding calls this month.</p>";
+ }else{
+   const [yr,mo]=m.split("-").map(Number), first=new Date(yr,mo-1,1), last=new Date(yr,mo,0);
+   const prevDays=first.getDay(), total=last.getDate();
+   let cells="";
+   ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=>cells+='<div class="calhead">'+d+'</div>');
+   for(let i=0;i<prevDays;i++)cells+='<div class="day muted"></div>';
+   for(let day=1;day<=total;day++){
+     const ds=yr+"-"+String(mo).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+     const calls=db.calls.filter(c=>c.date===ds).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+     const actions=calls.map(c=>'<button class="visit" data-call="'+esc(c.id)+'" title="Open visit details">'+esc(callDisplayName(c))+'</button>').join("");
+     const addReturn='<button class="day-add" data-empty-date="'+esc(ds)+'" title="Schedule a return visit" aria-label="Schedule a return visit">+</button>';
+     cells+='<div class="day"><div class="daytop"><div class="daynum">'+day+'</div>'+addReturn+'</div>'+actions+'</div>';
+   }
+   const used=prevDays+total, tail=(7-(used%7))%7;
+   for(let i=0;i<tail;i++)cells+='<div class="day muted"></div>';
+   $("calendarContent").innerHTML='<div class="calgrid">'+cells+'</div>';
+ }
+ document.querySelectorAll("#calendarContent [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call,true));
+ document.querySelectorAll("#calendarContent [data-empty-date]").forEach(b=>b.onclick=()=>openScheduleCall("",b.dataset.emptyDate,true));
+ applyLocalEditPermissions();
+}
+function publisherDisplayName(p){
+ const raw=String(p?.name||"").trim();
+ if(p?.lastName || p?.firstName){
+   const first=String(p.firstName||"").trim();
+   const last=String(p.lastName||"").trim();
+   if(last&&first)return last+", "+first;
+   return last||first||raw;
+ }
+ if(raw.includes(",")){
+   const parts=raw.split(",",2).map(x=>x.trim());
+   return parts[0] && parts[1] ? parts[0]+", "+parts[1] : raw;
+ }
+ const parts=raw.split(/\s+/).filter(Boolean);
+ if(parts.length<2)return raw;
+ return parts[parts.length-1]+", "+parts.slice(0,-1).join(" ");
+}
+function publisherSortParts(p){
+ const display=publisherDisplayName(p);
+ const parts=display.split(",",2);
+ return {last:(parts[0]||"").trim(),first:(parts[1]||"").trim()};
+}
+let dashboardExpanded=null;
+function renderDashboard(){
+ const active=db.publishers.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
+ const buckets={
+  publishers:active,
+  overdue:active.filter(p=>status(p)[0]==="over"),
+  soon:active.filter(p=>status(p)[0]==="soon"),
+  ok:active.filter(p=>status(p)[0]==="ok")
+ };
+ Object.values(buckets).forEach(list=>list.sort((a,b)=>{
+   const aa=publisherSortParts(a),bb=publisherSortParts(b);
+   return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
+ }));
+ const cards=[
+  ["publishers","Publishers",buckets.publishers.length],
+  ["overdue","Overdue",buckets.overdue.length],
+  ["soon","Due Soon",buckets.soon.length],
+  ["ok","Up to Date",buckets.ok.length]
+ ];
+ let statsHtml=cards.map(([key,label,count])=>'<button type="button" class="stat-card dashboard-stat-button" data-stat-filter="'+key+'" aria-expanded="'+(dashboardExpanded===key?'true':'false')+'"><div class="stat">'+count+'</div><div class="stat-label-row"><span class="stat-label">'+label+'</span><span class="stat-chevron" aria-hidden="true">⌄</span></div></button>').join("");
+ if(dashboardExpanded){
+   const list=buckets[dashboardExpanded]||[];
+   const label=cards.find(x=>x[0]===dashboardExpanded)?.[1]||"Publishers";
+   statsHtml+='<div class="dashboard-stat-panel"><div class="dashboard-stat-panel-header">'+label+'</div>';
+   statsHtml+=list.map(p=>'<button type="button" class="dashboard-stat-person" data-stat-publisher="'+esc(p.id)+'">'+esc(publisherDisplayName(p))+'</button>').join("") || '<div class="dashboard-stat-empty">None.</div>';
+   statsHtml+='</div>';
+ }
+ $("stats").className="dashboard-stats";
+ $("stats").innerHTML=statsHtml;
+ document.querySelectorAll("[data-stat-filter]").forEach(b=>b.onclick=()=>{
+   const key=b.dataset.statFilter;
+   dashboardExpanded=dashboardExpanded===key?null:key;
+   renderDashboard();
+ });
+ document.querySelectorAll("[data-stat-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.statPublisher));
+ const attention=db.publishers.filter(p=>status(p)[0]!=="ok" && (p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{
+   const aa=publisherSortParts(a),bb=publisherSortParts(b);
+   return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
+ });
+ $("attention").innerHTML=attention.map(p=>{
+   const scheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
+  const dotClass=scheduled?"scheduled":"attention";
+  const dotTitle=scheduled?"Scheduled visit":"Needs attention";
+  return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>';
+ }).join("")||"None.";
+ document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.attentionPublisher));
+ applyLocalEditPermissions();
+}
+function render(){
+ // Keep dashboard/publisher status derived from the current shepherding call records.
+ // Cancelled visits cannot leave a stale "Up to date" status behind.
+ syncAllPublisherLast();
+ try{localStorage.setItem(DATA_KEY,JSON.stringify(db));$("storageStatus").textContent="Local data active — saved on this device"}catch(e){$("storageStatus").textContent="Unable to save local data"}
+ renderGroup();renderPublishers();renderCalls();renderCalendar();renderDashboard();applyLocalEditPermissions()
 }
 
+function openModal(content){
+ // Never carry keyboard focus into a newly opened modal. On iPhone/Safari,
+ // explicitly blur the active field before and after rendering the modal.
+ if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+ document.body.classList.add("modal-open");
+ $("modalBox").innerHTML='<button id="modalClose" type="button" class="modal-close" aria-label="Close">×</button>'+content;
+ $("modalClose").onclick=closeModal;
+ $("modal").classList.add("open");
+ // Prevent iOS from restoring focus to the last field in the modal.
+ setTimeout(()=>{ if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); },0);
+}
+function closeModal(){
+ $("modal").classList.remove("open");
+ document.body.classList.remove("modal-open");
+}
+$("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+
+function publisherFormDateValue(p){
+ return p&&p.last?formatDisplayDate(p.last):"";
+}
+function familyDisplayName(p){
+ const h=(p&&p.house||"").trim();
+ if(!h)return p&&p.name ? p.name+" Family" : "Whole Family";
+ return /\bfamily\b$/i.test(h) ? h : h+" Family";
+}
+function callDisplayName(c){
+ if(!c.wholeFamily)return c.name||"";
+ const p=db.publishers.find(x=>x.id===c.publisherId);
+ return familyDisplayName(p);
+}
+function visitScopeOptions(selected){
+ return '<div class="visit-scope"><label>Visit With</label><div class="scope-options"><label><input type="radio" name="visitScope" value="publisher"'+(selected?'':' checked')+'> Publisher only</label><label><input type="radio" name="visitScope" value="family"'+(selected?' checked':'')+'> Whole family</label></div></div>';
+}
+function openScheduleCall(publisherId="",initialDate="",returnVisit=false){
+ if(readOnlyGuard())return;
+ if(!db.publishers.length){alert("Add a publisher first.");return}
+ const today=new Date().toISOString().slice(0,10);
+ const date=initialDate||today;
+ const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
+ const typeOpts='<option'+(returnVisit?'':' selected')+'>Home Visit</option><option>Kingdom Hall</option><option>Telephone</option><option>Other</option><option'+(returnVisit?' selected':'')+'>Return Visit</option>';
+ openModal('<h2>'+ (returnVisit?'Schedule Return Visit':'Schedule Shepherding Call') +'</h2><label>Publisher</label><select id="cPub">'+pubOpts+'</select>'+visitScopeOptions(false)+'<div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="cDate" type="date" value="'+esc(date)+'"><span id="cDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+shepherdingBrotherOptions()+'</select></div><div><label>Brother 2</label><select id="cB2">'+shepherdingBrotherOptions()+'</select></div></div><label>Type</label><select id="cType">'+typeOpts+'</select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
+ $("cancelCall").onclick=closeModal;
+ updateFriendlyCallDate("cDate","cTime","cDateDisplay");
+ $("cDate").onchange=()=>updateFriendlyCallDate("cDate","cTime","cDateDisplay");
+ $("cTime").onchange=()=>updateFriendlyCallDate("cDate","cTime","cDateDisplay");
+ $("saveCall").onclick=()=>{
+   const p=db.publishers.find(x=>x.id===$("cPub").value);if(!p)return;
+   const b1=$("cB1").value,b2=$("cB2").value;
+   if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
+   const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
+   db.calls.push({id:uid(),publisherId:p.id,name:p.name,date:$("cDate").value,time:$("cTime").value,brother1:b1,brother2:b2,type:$("cType").value,notes:$("cNotes").value,status:"Scheduled",wholeFamily,scheduledBy:currentUserDisplayName()});
+   closeModal();persist();
+ };
+}
+function familyHeadForHouse(house,excludeId=""){
+ const h=(house||"").trim().toLocaleLowerCase();
+ if(!h)return null;
+ return db.publishers.find(x=>x.id!==excludeId&&x.familyHead&&(x.house||"").trim().toLocaleLowerCase()===h)||null;
+}
+function syncFamilyAddress(house,address,excludeId=""){
+ const h=(house||"").trim().toLocaleLowerCase();
+ if(!h)return;
+ db.publishers.forEach(x=>{
+   if(x.id!==excludeId&&(x.house||"").trim().toLocaleLowerCase()===h)x.address=address||"";
+ });
+}
+function addressForHouse(house,excludeId=""){
+ const head=familyHeadForHouse(house,excludeId);
+ return head ? (head.address||"") : "";
+}
+function publisherRoleOptions(selected=""){
+ return '<option value=""'+(selected===""?' selected':'')+'>— Blank —</option><option value="Publisher"'+(selected==="Publisher"?' selected':'')+'>Publisher</option><option value="Auxiliary Pioneer"'+(selected==="Auxiliary Pioneer"?' selected':'')+'>Auxiliary Pioneer</option><option value="Regular Pioneer"'+(selected==="Regular Pioneer"?' selected':'')+'>Regular Pioneer</option><option value="Inactive"'+(selected==="Inactive"?' selected':'')+'>Inactive</option><option value="Elder"'+(selected==="Elder"?' selected':'')+'>Elder</option><option value="Ministerial Servant"'+(selected==="Ministerial Servant"?' selected':'')+'>Ministerial Servant</option>';
+}
+function editPublisher(id){
+ if(readOnlyGuard())return;
+ const p=db.publishers.find(x=>x.id===id);if(!p)return;
+ normalizePublisherRecord(p);
+ const head=familyHeadForHouse(p.house,p.id);
+ const inherited=head && !p.familyHead;
+ const initialAddress=inherited ? (head.address||"") : (p.address||"");
+ openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP">'+esc(initialAddress)+'</textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="deletePub" class="danger">Delete Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
+ attachPhoneFormatter();
+ const updateAddressState=()=>{
+   const h=familyHeadForHouse($("fHouse").value,p.id);
+   const inheritedNow=h&&!$("fFamilyHead").checked;
+   if(inheritedNow){$("fAddress").value=h.address||"";$("fAddress").readOnly=true;}
+   else{$("fAddress").readOnly=false;if($("fFamilyHead").checked && !$("fAddress").value)$("fAddress").value=p.address||"";}
+ };
+ $("fHouse").oninput=updateAddressState;
+ $("fFamilyHead").onchange=updateAddressState;
+ $("deletePub").onclick=()=>{
+   if(!confirm("Delete this publisher? This will also remove their shepherding records from this group. This cannot be undone."))return;
+   db.calls=db.calls.filter(c=>c.publisherId!==p.id);
+   db.publishers=db.publishers.filter(x=>x.id!==p.id);
+   persist();closeModal();
+ };
+ $("cancel").onclick=closeModal;
+ $("schedulePublisherCall").onclick=()=>{closeModal();openScheduleCall(p.id)};
+ $("savePub").onclick=()=>{
+   const name=$("fName").value.trim();if(!name){alert("Enter a name.");return}
+   const oldHouse=(p.house||"").trim();
+   const house=$("fHouse").value.trim();
+   const familyHead=$("fFamilyHead").checked;
+   const last=normalizePublisherDate($("fLast").value);
+   if($("fLast").value.trim()&&!last){alert("Please enter the date as MM/DD/YYYY.");return}
+   if(familyHead){
+     const otherHead=familyHeadForHouse(house,p.id);
+     if(otherHead){alert("This family already has a family head. Uncheck Family Head on the existing family head before assigning it here.");return}
+   }
+   p.name=name;p.role=$("fRole").value;p.house=house;p.familyHead=familyHead;
+p.phone=$("fPhone").value;p.email=$("fEmail").value;p.last=last;p.notes=$("fNotes").value;
+   // Save the address directly to the publisher record first.
+   // For a Family Head, also copy the same address to the rest of the household.
+   // For other family members, the address remains inherited from the Family Head.
+   const enteredAddress=$("fAddress").value;
+   if(familyHead){
+     p.address=enteredAddress.trim();
+     syncFamilyAddress(house,p.address,p.id);
+   }else{
+     const currentHead=familyHeadForHouse(house,p.id);
+     if(currentHead){
+       p.address=String(currentHead.address||"");
+     }else{
+       // A publisher with no household is allowed to have an independent address.
+       p.address=enteredAddress.trim();
+     }
+   }
+   normalizePublisherRecord(p);
+   persist();closeModal();
+ };
+}
+$("addPublisher").onclick=()=>{
+ openModal('<h2>Add Publisher</h2><label>Name</label><input id="fName" autocomplete="off"><label>Role</label><select id="fRole">'+publisherRoleOptions("")+'</select><label>Household</label><input id="fHouse" autocomplete="off"><div class="family-head-row"><input id="fFamilyHead" type="checkbox"><label for="fFamilyHead">Family Head</label></div><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP"></textarea><p id="familyAddressNote" class="family-address-note" style="display:none">Address will be populated from the family head.</p><label>Phone</label><input id="fPhone" type="tel" autocomplete="tel"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY"><label>Notes</label><textarea id="fNotes"></textarea><div class="actions"><button id="savePub">Save Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
+ attachPhoneFormatter();
+ $("fHouse").oninput=()=>{
+   const h=familyHeadForHouse($("fHouse").value);
+   const isHead=$("fFamilyHead").checked;
+   if(h&&!isHead){$("fAddress").value=h.address||"";$("fAddress").readOnly=true;$("familyAddressNote").style.display="block"}
+   else{$("fAddress").readOnly=false;$("familyAddressNote").style.display="none"}
+ };
+ $("fFamilyHead").onchange=()=>$("fHouse").dispatchEvent(new Event("input"));
+ $("fName").focus();
+ $("cancel").onclick=closeModal;
+ $("savePub").onclick=()=>{
+   const name=$("fName").value.trim();if(!name){alert("Enter a name.");return}
+   const house=$("fHouse").value.trim(),familyHead=$("fFamilyHead").checked;
+   const last=normalizePublisherDate($("fLast").value);
+   if($("fLast").value.trim()&&!last){alert("Please enter the date as MM/DD/YYYY.");return}
+   if(familyHead&&familyHeadForHouse(house)){alert("This family already has a family head.");return}
+   const head=familyHeadForHouse(house);
+   const address=familyHead?$("fAddress").value.trim():(head?head.address||"":"");
+   const p={id:uid(),name,role:$("fRole").value,house,familyHead,address,phone:$("fPhone").value,email:$("fEmail").value,last,notes:$("fNotes").value};
+   db.publishers.push(p);
+   if(familyHead)syncFamilyAddress(house,address,p.id);
+   closeModal();persist();
+ };
+};
+function showHistory(publisherId){
+ const p=db.publishers.find(x=>x.id===publisherId);if(!p)return;
+ const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
+ let body=history.length?history.map(c=>{
+   const brothers=[c.brother1,c.brother2].filter(Boolean).map(shepherdingBrotherName).join(" & ")||"Not recorded";
+   return '<div class="card"><h3>'+formatCallDateTime(c)+'</h3><p><b>Scheduled Date:</b> '+esc(formatScheduledDate(c))+'<br><b>Completed Date:</b> '+esc(formatCompletedDate(c))+'<br><b>Brothers:</b> '+esc(brothers)+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+'</p><p><b>Notes:</b><br>'+esc(c.notes||"No notes recorded.")+'</p><div class="actions"><button class="secondary" data-history-call="'+esc(c.id)+'">Open Visit Details</button><button class="danger" data-history-delete="'+esc(c.id)+'">Delete Visit</button></div></div>'
+ }).join(""):'<div class="card"><p>No completed shepherding calls have been recorded for '+esc(p.name)+'.</p></div>';
+ openModal('<h2>Shepherding History</h2><p><b>'+esc(p.name)+'</b></p>'+body+'<div class="actions"><button id="closeHistory" class="secondary">Close</button></div>');
+ $("closeHistory").onclick=closeModal;
+ document.querySelectorAll("[data-history-call]").forEach(b=>b.onclick=()=>{const id=b.dataset.historyCall;closeModal();editCall(id)});
+ document.querySelectorAll("[data-history-delete]").forEach(b=>b.onclick=()=>{
+   const id=b.dataset.historyDelete;
+   const c=db.calls.find(x=>x.id===id);
+   if(!c)return;
+   if(confirm("Delete this historical shepherding visit? This cannot be undone.")){
+     db.calls=db.calls.filter(x=>x.id!==id);
+     syncPublisherLast(publisherId);
+     persist();
+     showHistory(publisherId);
+   }
+ });
+}
+function editCall(id,fromCalendar=false){
+ if(readOnlyGuard())return;
+ returnToDashboardAfterCallEdit=!!fromCalendar;
+ const c=db.calls.find(x=>x.id===id);if(!c)return;
+ const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
+ const today=new Date().toISOString().slice(0,10);
+ openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select>'+visitScopeOptions(!!c.wholeFamily)+'<div class="row"><div><label>Scheduled Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+shepherdingBrotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+shepherdingBrotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><div id="completionDateRow" style="display:'+(c.status==="Completed"?'block':'none')+'"><label>Completion Date</label><div class="friendly-date-input"><input id="eCompletedDate" type="date" value="'+esc(c.completedDate||today)+'"><span id="eCompletedDateDisplay" class="friendly-input-text"></span></div><p class="small">Enter the actual date the shepherding call took place.</p></div><label>Notes</label><textarea id="eNotes">'+esc(c.notes||"")+'</textarea>'+(c.scheduledBy?'<p class="small" style="margin:10px 0 0"><b>Scheduled by:</b> '+esc(c.scheduledBy)+'</p>':'')+'<div class="actions"><button id="markCompleted" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Mark Completed</button><button id="updateCall">Save Changes</button><button id="cancelVisit" class="danger" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Cancel Visit</button><button id="deleteCall" class="danger" style="display:'+(c.status!=="Scheduled"?'inline-block':'none')+'">Delete Visit</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
+ $("cancelEdit").onclick=()=>{
+  closeModal();
+  if(returnToDashboardAfterCallEdit){
+    returnToDashboardAfterCallEdit=false;
+    show("dashboard");
+  }
+ };
+ updateFriendlyCallDate("eDate","eTime","eDateDisplay");
+ $("eDate").onchange=()=>updateFriendlyCallDate("eDate","eTime","eDateDisplay");
+ $("eTime").onchange=()=>updateFriendlyCallDate("eDate","eTime","eDateDisplay");
+ updateFriendlyCallDate("eDate","eTime","eDateDisplay");
+ if($("eCompletedDate"))updateFriendlyCallDate("eCompletedDate","eTime","eCompletedDateDisplay");
+ if($("eCompletedDate"))$("eCompletedDate").onchange=()=>updateFriendlyCallDate("eCompletedDate","eTime","eCompletedDateDisplay");
+ const refreshCompletionUI=()=>{
+   const status=$("eStatus").value;
+   const scheduled=status==="Scheduled";
+   const completed=status==="Completed";
+   $("cancelVisit").style.display=scheduled?"inline-block":"none";
+   $("deleteCall").style.display=scheduled?"none":"inline-block";
+   $("markCompleted").style.display=scheduled?"inline-block":"none";
+   $("completionDateRow").style.display=completed?"block":"none";
+   if(completed && !$("eCompletedDate").value)$("eCompletedDate").value=new Date().toISOString().slice(0,10);
+   if(completed)updateFriendlyCallDate("eCompletedDate","eTime","eCompletedDateDisplay");
+ };
+ $("eStatus").onchange=refreshCompletionUI;
+ $("markCompleted").onclick=()=>{
+   $("eStatus").value="Completed";
+   $("eCompletedDate").value=new Date().toISOString().slice(0,10);
+   refreshCompletionUI();
+ };
+ $("cancelVisit").onclick=()=>{
+   if(confirm("Cancel this scheduled shepherding visit? The visit will remain in your records as Cancelled.")){
+     c.status="Cancelled";
+     const cancelledPublisher=db.publishers.find(x=>x.id===c.publisherId);
+     if(cancelledPublisher)cancelledPublisher.last="";
+     syncPublisherLast(c.publisherId);
+     const goHome=returnToDashboardAfterCallEdit;
+     returnToDashboardAfterCallEdit=false;
+     closeModal();persist();
+     if(goHome)show("dashboard");
+   }
+ };
+ $("deleteCall").onclick=()=>{
+ if(confirm("Delete this shepherding visit? This cannot be undone.")){
+   const goHome=returnToDashboardAfterCallEdit;
+   returnToDashboardAfterCallEdit=false;
+   db.calls=db.calls.filter(x=>x.id!==id);
+   syncPublisherLast(c.publisherId);
+   closeModal();persist();
+   if(goHome)show("dashboard");
+ }
+ };
+ $("updateCall").onclick=()=>{
+   const p=db.publishers.find(x=>x.id===$("ePub").value),b1=$("eB1").value,b2=$("eB2").value;
+   if(!p)return;
+   const oldPublisherId=c.publisherId;
+   const oldStatus=c.status;
+   if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
+   const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
+   const newStatus=$("eStatus").value;
+   const completionDate=$("eCompletedDate")?$("eCompletedDate").value:"";
+   if(newStatus==="Completed"&&!completionDate){alert("Please enter the completion date.");return}
+   c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother2=b2;c.type=$("eType").value;c.status=newStatus;c.completedDate=newStatus==="Completed"?(completionDate||new Date().toISOString().slice(0,10)):"";c.notes=$("eNotes").value;c.wholeFamily=wholeFamily;   if(oldStatus==="Completed" && oldPublisherId!==c.publisherId)syncPublisherLast(oldPublisherId);
+   syncPublisherLast(c.publisherId);
+   const goHome=returnToDashboardAfterCallEdit;
+   returnToDashboardAfterCallEdit=false;
+   closeModal();persist();
+   if(goHome)show("dashboard");
+ };
+}
+$("saveGroup").onclick=()=>{
+ if(readOnlyGuard())return;
+ const name=$("groupName").value.trim();
+ const overseer=$("groupOverseer").value;
+ const assistant=$("groupAssistant").value;
+ if(overseer&&assistant&&overseer===assistant){alert("The Group Overseer and Assistant must be two different people.");return}
+ db.group.name=name;db.group.overseer=overseer;db.group.assistant=assistant;
+ persist();
+ alert("Group information saved.");
+};
+$("addElder").onclick=()=>{if(readOnlyGuard())return;const n=$("elderSelect").value;if(!n)return;db.group.elders=db.group.elders||[];if(!db.group.elders.includes(n)){db.group.elders.push(n);persist()}};
+
+$("calendarMonth").onchange=renderCalendar;$("prevMonth").onclick=()=>shiftCalendarMonth(-1);$("nextMonth").onclick=()=>shiftCalendarMonth(1);$("listViewBtn").onclick=()=>{calendarMode="list";renderCalendar()};$("monthViewBtn").onclick=()=>{calendarMode="calendar";renderCalendar()};
+$("reminderMonths").onchange=()=>{if(readOnlyGuard())return;db.reminderMonths=Math.max(1,Number($("reminderMonths").value)||3);persist()};
+
+async function refreshGroupAccessUI(){
+ const list=$("accessMemberList"), addCard=$("accessAddCard");
+ if(!list)return;
+ if(!sb||!cloudUser||!sharedGroup||!sharedMembership){
+   if(cloudUser && !sharedMembership){
+     list.innerHTML='<p class="small"><b>Access disabled</b><br>Your account is signed in, but it is not currently an active member of this group. Admin Access is available only to active Full-access members.</p>';
+   }else{
+     list.innerHTML='<p class="small">Sign in and load your shared group access first.</p>';
+   }
+   if(addCard)addCard.style.display="none";
+   applyCloudAccessNavigation();
+   return;
+ }
+ const full=String(sharedMembership.permission_level||"").toLowerCase()==="full";
+ if(addCard)addCard.style.display=full?"block":"none";
+ try{
+   const {data,error}=await sb.rpc("list_group_members",{p_group_id:sharedGroup.id});
+   if(error)throw error;
+   if(!data||!data.length){list.innerHTML='<p class="small">No members found.</p>';return;}
+   list.innerHTML=data.map(m=>{
+     const me=m.user_id===cloudUser.id;
+     const name=me?currentUserDisplayName():String(m.display_name||m.email||"").trim();
+     const label=name||"Supabase account";
+     const email=me?(cloudUser.email||""):String(m.email||"").trim();
+     const status=m.access_enabled?"Enabled":"Disabled";
+     const perm=String(m.permission_level||"").toLowerCase()==="full"?"Full access":"Read only";
+     const disabled=!full || me;
+     return '<div class="access-member" style="padding:10px 0;border-top:1px solid #ddd">'+
+       '<b>'+esc(label)+'</b>'+(email&&email.toLowerCase()!==label.toLowerCase()?'<br><span class="small">'+esc(email)+'</span>':'')+'<br><span class="small">'+esc(m.member_role||"Publisher")+' • '+esc(perm)+' • '+esc(status)+'</span>'+
+       (full&&!me?'<div class="row" style="margin-top:9px"><div><label>Role</label><select data-member-role="'+esc(m.user_id)+'"><option value="Elder" '+(m.member_role==='Elder'?'selected':'')+'>Elder</option><option value="Ministerial Servant" '+(m.member_role==='Ministerial Servant'?'selected':'')+'>Ministerial Servant</option></select></div><div><label>Permission</label><select data-member-permission="'+esc(m.user_id)+'"><option value="Full" '+(String(m.permission_level||'').toLowerCase()==='full'?'selected':'')+'>Full access</option><option value="Read" '+(String(m.permission_level||'').toLowerCase()==='read'?'selected':'')+'>Read only</option></select></div></div><div style="margin-top:7px"><button class="secondary" data-save-member="'+esc(m.user_id)+'">Save Member Settings</button></div><div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'">'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
+       (full&&me?'<div class="small" style="margin-top:7px">Your own role and permission cannot be changed here.</div><div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'" disabled>'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
+       '</div>';
+   }).join("");
+   document.querySelectorAll("[data-toggle-access]").forEach(b=>b.onclick=()=>toggleGroupAccess(b.dataset.toggleAccess,b.dataset.enabled!=="true"));
+   document.querySelectorAll("[data-save-member]").forEach(b=>b.onclick=()=>updateGroupMember(b.dataset.saveMember));
+ }catch(err){
+   list.innerHTML='<p class="small">Unable to load group members: '+esc(err?.message||err)+'</p>';
+ }
+}
+async function updateGroupMember(userId){
+ if(!sb||!cloudUser||!sharedGroup||!sharedMembership)return;
+ if(String(sharedMembership.permission_level||"").toLowerCase()!=="full"){alert("Only Full-access members can manage group access.");return}
+ if(userId===cloudUser.id){alert("Your own role and permission cannot be changed here.");return}
+ const roleEl=document.querySelector('[data-member-role="'+CSS.escape(userId)+'"]');
+ const permissionEl=document.querySelector('[data-member-permission="'+CSS.escape(userId)+'"]');
+ if(!roleEl||!permissionEl){alert("Unable to read the selected member settings.");return}
+ const role=roleEl.value, permission=permissionEl.value;
+ const {error}=await sb.from("group_members").update({member_role:role,permission_level:permission}).eq("group_id",sharedGroup.id).eq("user_id",userId);
+ if(error){alert("Unable to update this member: "+error.message);return}
+ alert("Member settings saved.");
+ await refreshGroupAccessUI();
+}
+async function toggleGroupAccess(userId,enabled){
+ if(!sb||!cloudUser||!sharedGroup||!sharedMembership)return;
+ if(String(sharedMembership.permission_level||"").toLowerCase()!=="full"){alert("Only Full-access members can manage group access.");return}
+ if(userId===cloudUser.id){alert("Your own access cannot be disabled here.");return}
+ const action=enabled?"enable":"disable";
+ if(!confirm((enabled?"Enable":"Disable")+" access for this group member?"))return;
+ const {error}=await sb.from("group_members").update({access_enabled:enabled}).eq("group_id",sharedGroup.id).eq("user_id",userId);
+ if(error){alert("Unable to "+action+" access: "+error.message);return}
+ await refreshGroupAccessUI();
+}
+async function addGroupAccessMember(){
+ if(!sb||!cloudUser||!sharedGroup||!sharedMembership){alert("Connect and sign in to the shared group first.");return}
+ if(String(sharedMembership.permission_level||"").toLowerCase()!=="full"){alert("Only Full-access members can add group members.");return}
+ const email=$("accessEmail").value.trim();
+ const role=$("accessRole").value;
+ const permission=$("accessPermission").value;
+ if(!email){alert("Enter the person's Supabase account email.");return}
+ const {data:found,error:findError}=await sb.rpc("find_group_user_by_email",{p_group_id:sharedGroup.id,p_email:email});
+ if(findError){alert("Unable to find that Supabase account: "+findError.message);return}
+ const user=Array.isArray(found)?found[0]:found;
+ if(!user?.user_id){alert("No Supabase account was found with that email address. They need to create their account first.");return}
+ if(user.user_id===cloudUser.id){alert("Your account is already the current group member.");return}
+ const {data:existing,error:existingError}=await sb.from("group_members").select("user_id,access_enabled").eq("group_id",sharedGroup.id).eq("user_id",user.user_id).maybeSingle();
+ if(existingError){alert("Unable to check existing group access: "+existingError.message);return}
+ if(existing){
+   const {error}=await sb.from("group_members").update({access_enabled:true,member_role:role,permission_level:permission}).eq("group_id",sharedGroup.id).eq("user_id",user.user_id);
+   if(error){alert("Unable to update this member: "+error.message);return}
+   alert("This account was already a member. Its access has been enabled and updated.");
+ }else{
+   const {error}=await sb.from("group_members").insert({group_id:sharedGroup.id,user_id:user.user_id,access_enabled:true,member_role:role,permission_level:permission});
+   if(error){alert("Unable to add this member: "+error.message);return}
+   alert("Group member added successfully.");
+ }
+ $("accessEmail").value="";
+ await refreshGroupAccessUI();
+}
+$("addAccessMember").onclick=async()=>{
+ const btn=$("addAccessMember");
+ if(!btn)return;
+ btn.disabled=true;
+ const oldText=btn.textContent;
+ btn.textContent="Adding…";
+ try{await addGroupAccessMember();}
+ finally{btn.disabled=false;btn.textContent=oldText;}
+};
+function loadCloudConfig(){
+ try{return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY)||"null")}catch(e){return null}
+}
+function saveCloudConfig(url,key){
+ localStorage.setItem(CLOUD_CONFIG_KEY,JSON.stringify({url:String(url||"").trim(),key:String(key||"").trim()}));
+}
+function setCloudStatus(message,ok=false){
+ const el=$("cloudStatus"); if(el){el.textContent=message;el.style.fontWeight="700";}
+}
+function updateCloudUI(){
+ const connected=!!sb;
+ const signedIn=!!cloudUser;
+ $("cloudAuth").style.display=connected?"block":"none";
+ $("cloudDataActions").style.display=signedIn?"block":"none";
+ $("cloudSignIn").style.display=signedIn?"none":"inline-block";
+ $("cloudSignUp").style.display=signedIn?"none":"inline-block";
+ $("cloudSignOut").style.display=signedIn?"inline-block":"none";
+ $("saveCloudProfile").style.display=signedIn?"inline-block":"none";
+ if(signedIn){const meta=cloudUser.user_metadata||{}; $("cloudEmail").value=cloudUser.email||""; $("cloudFirstName").value=meta.first_name||""; $("cloudLastName").value=meta.last_name||"";}
+ $("cloudUserStatus").textContent=signedIn?"Signed in as "+(currentUserDisplayName()||cloudUser.email||"your cloud account")+".":(connected?"Connected. Sign in to an existing account or create a new one.":"No cloud account signed in.");
+}
 async function connectSupabase(){
  const url=$("supabaseUrl").value.trim(),key=$("supabaseKey").value.trim();
  if(!url||!key){alert("Enter the Supabase Project URL and Publishable Key.");return}
@@ -1208,14 +1951,15 @@ async function switchToGroup(groupId){
    if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls))throw Error("The shared data for this group is not a valid Shepherding Assistant V2 record.");
    sharedMembership=membership;
    sharedGroup=group;
+   sharedGroupVersion=Number(shared?.version)||null;
    localStorage.setItem(ACTIVE_GROUP_KEY,group.id);
-   sharedGroupVersion=Number(shared.version)||null;
    suppressCloudSync=true;
    db=x;
    persist(false);
    suppressCloudSync=false;
    setLocalChangesPending(false);
-   setCloudStatus("Connected — "+group.name+" (version "+(sharedGroupVersion||"?")+")");
+   lastRemoteNoticeVersion=null;
+   setCloudStatus("Connected — "+group.name);
    await refreshMyGroupsUI();
    applyCloudAccessNavigation();
    await refreshGroupAccessUI();
@@ -1254,14 +1998,6 @@ async function refreshSharedMembership(){
    sharedMembership=first;sharedGroup=g;
    sharedGroupVersion=null;
    localStorage.setItem(ACTIVE_GROUP_KEY,g.id);
-   try{
-     const {data:sharedBaseline,error:baselineError}=await sb.from("group_data_shared").select("data,version").eq("group_id",g.id).maybeSingle();
-     if(!baselineError && sharedBaseline?.data && Number.isInteger(Number(sharedBaseline.version))){
-       const same=JSON.stringify(db)===JSON.stringify(sharedBaseline.data);
-       if(same){sharedGroupVersion=Number(sharedBaseline.version);setLocalChangesPending(false)}
-       else if(isLocalChangesPending()){setCloudStatus(g.name+" — local changes pending")};
-     }
-   }catch(e){console.error(e)}
    if(status)status.textContent=g.name+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
    $("loadSharedData").disabled=false;
    $("saveSharedData").disabled=String(first.permission_level||"").toLowerCase()!=="full";
@@ -1313,8 +2049,6 @@ async function saveSharedGroupData(){
    return;
  }
  sharedGroupVersion=Number(newVersion)||sharedGroupVersion+1;
- setLocalChangesPending(false);
- lastRemoteNoticeVersion=null;
  setCloudStatus("Connected — shared group saved (version "+sharedGroupVersion+")");
  alert("Changes saved to the shared group successfully. Shared data is now version "+sharedGroupVersion+".");
 }
@@ -1470,5 +2204,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.23</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, authorized App Members can keep the group synchronized with conflict protection.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.24</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
