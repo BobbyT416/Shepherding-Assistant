@@ -1896,6 +1896,10 @@ function saveCloudConfig(url,key){
 }
 function setCloudStatus(message,ok=false){
  const el=$("cloudStatus"); if(el){el.textContent=message;el.style.fontWeight="700";}
+ const lower=String(message||"").toLowerCase();
+ if(lower.includes("synced") && !lower.includes("unable")){
+   if(typeof markSyncSuccess==="function") markSyncSuccess("Synced");
+ }
 }
 function setSyncStatus(message){
  const el=$("cloudSyncStatus"); if(el){el.textContent="Sync status: "+message;}
@@ -2282,7 +2286,7 @@ $("clearData").onclick=()=>{if(readOnlyGuard())return;if(confirm("Erase ALL grou
 initCloud();
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")setTimeout(()=>checkForSharedUpdates("resume"),150)});
 window.addEventListener("focus",()=>setTimeout(()=>checkForSharedUpdates("focus"),150));
-// V2.36.30: while the app remains open, periodically check for newer shared data.
+// V2.36.31: while the app remains open, periodically check for newer shared data.
 setInterval(()=>checkForSharedUpdates("interval"),15000);
 const toggleCloudPassword=$("toggleCloudPassword");
 if(toggleCloudPassword){
@@ -2297,5 +2301,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.30</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.31</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
