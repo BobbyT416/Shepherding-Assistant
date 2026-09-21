@@ -16,7 +16,7 @@ button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b423
 label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
 input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;border:1px solid #bdc5d0;border-radius:7px;background:#fff;font:inherit}
 textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}@media(max-width:650px){.row{grid-template-columns:1fr}}
+.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}.link-button{background:none;border:0;padding:0;color:#2563eb;text-decoration:underline;cursor:pointer;font:inherit}@media(max-width:650px){.row{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e1e4e8;text-align:left}
 .call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.shepherding-calls-card{margin-top:16px}.completed-calls-card{margin-top:14px}.completed-calls-card h3{color:#4d5968}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
 .modal{
@@ -901,6 +901,7 @@ textarea.publisher-address-field{
 <label>Password</label><div class="password-row"><input id="cloudPassword" type="password" autocomplete="current-password"><button id="toggleCloudPassword" type="button" class="secondary" aria-pressed="false">Show</button></div>
 <p class="small">Use Show if you need to verify the password you entered.</p>
 <div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="saveCloudProfile" class="secondary" style="display:none">Save Name</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
+<p style="margin:8px 0 0"><button id="forgotPassword" type="button" class="link-button">Forgot Password?</button></p>
 </div>
 <div id="cloudDataActions" style="display:none">
 <p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
@@ -1939,6 +1940,7 @@ async function connectSupabase(){
  if(!window.supabase||!window.supabase.createClient){alert("The Supabase library could not be loaded. Check your internet connection and try again.");return}
  try{
    sb=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+   attachRecoveryHandler();
    saveCloudConfig(url,key);
    const {data,error}=await sb.auth.getSession();
    if(error)throw error;
@@ -2159,6 +2161,7 @@ async function connectSupabase(){
  if(!window.supabase||!window.supabase.createClient){alert("The Supabase library could not be loaded. Check your internet connection and try again.");return}
  try{
    sb=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+   attachRecoveryHandler();
    saveCloudConfig(url,key);
    const {data,error}=await sb.auth.getSession();
    if(error)throw error;
@@ -2171,6 +2174,42 @@ async function connectSupabase(){
 async function disconnectSupabase(){
  if(sb){try{await sb.auth.signOut()}catch(e){}}
  sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;localStorage.removeItem(CLOUD_CONFIG_KEY);$("supabaseKey").value="";setCloudStatus("Not connected");updateCloudUI();
+}
+let recoveryHandlerAttached=false;
+async function sendPasswordReset(){
+ if(!sb){alert("Connect to Supabase first.");return}
+ const email=$("cloudEmail").value.trim();
+ if(!email){alert("Enter your email address first.");return}
+ try{
+   const redirectTo=window.location.origin+window.location.pathname;
+   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+   if(error)throw error;
+   alert("Password reset instructions were sent to "+email+". Check your email and follow the link to set a new password.");
+ }catch(err){alert("Unable to send password reset email: "+(err?.message||err));}
+}
+async function finishPasswordRecovery(){
+ const password=prompt("Enter your new password (at least 6 characters):");
+ if(password===null)return;
+ if(password.length<6){alert("Supabase requires a password of at least 6 characters.");return}
+ const confirmPassword=prompt("Re-enter your new password:");
+ if(confirmPassword===null)return;
+ if(password!==confirmPassword){alert("The passwords do not match. Please use Forgot Password again to retry.");return}
+ try{
+   const {error}=await sb.auth.updateUser({password});
+   if(error)throw error;
+   alert("Your password has been changed successfully. You can now sign in with your new password.");
+   await sb.auth.signOut();
+   cloudUser=null;
+   updateCloudUI();
+ }catch(err){alert("Unable to change your password: "+(err?.message||err));}
+}
+function attachRecoveryHandler(){
+ if(!sb||recoveryHandlerAttached)return;
+ recoveryHandlerAttached=true;
+ sb.auth.onAuthStateChange((event,session)=>{
+   cloudUser=session?.user||cloudUser;
+   if(event==="PASSWORD_RECOVERY") setTimeout(()=>finishPasswordRecovery(),0);
+ });
 }
 async function cloudSignIn(){
  if(!sb){alert("Connect to Supabase first.");return}
@@ -2212,6 +2251,7 @@ function initCloud(){
  $("connectSupabase").onclick=connectSupabase;
  $("disconnectSupabase").onclick=disconnectSupabase;
  $("cloudSignIn").onclick=cloudSignIn;
+ $("forgotPassword").onclick=sendPasswordReset;
  $("cloudSignUp").onclick=cloudSignUp;
  $("cloudSignOut").onclick=cloudSignOut;
  $("saveCloudProfile").onclick=saveCloudProfile;
@@ -2311,5 +2351,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.32</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.33</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
