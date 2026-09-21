@@ -1820,7 +1820,7 @@ async function refreshGroupAccessUI(){
      const disabled=!full || me;
      return '<div class="access-member" style="padding:10px 0;border-top:1px solid #ddd">'+
        '<b>'+esc(label)+'</b>'+(email&&email.toLowerCase()!==label.toLowerCase()?'<br><span class="small">'+esc(email)+'</span>':'')+'<br><span class="small">'+esc(m.member_role||"Publisher")+' • '+esc(perm)+' • '+esc(status)+'</span>'+
-       (full&&!me?'<div class="row" style="margin-top:9px"><div><label>Role</label><select data-member-role="'+esc(m.user_id)+'"><option value="Elder" '+(m.member_role==='Elder'?'selected':'')+'>Elder</option><option value="Ministerial Servant" '+(m.member_role==='Ministerial Servant'?'selected':'')+'>Ministerial Servant</option></select></div><div><label>Permission</label><select data-member-permission="'+esc(m.user_id)+'"><option value="Full" '+(String(m.permission_level||'').toLowerCase()==='full'?'selected':'')+'>Full access</option><option value="Read" '+(String(m.permission_level||'').toLowerCase()==='read'?'selected':'')+'>Read only</option></select></div></div><div style="margin-top:7px"><button class="secondary" data-save-member="'+esc(m.user_id)+'">Save Member Settings</button></div><div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'">'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
+       (full&&!me?'<div class="row" style="margin-top:9px"><div><label>Role</label><select data-member-role="'+esc(m.user_id)+'"><option value="Elder" '+(m.member_role==='Elder'?'selected':'')+'>Elder</option><option value="Ministerial Servant" '+(m.member_role==='Ministerial Servant'?'selected':'')+'>Ministerial Servant</option></select></div><div><label>Permission</label><select data-member-permission="'+esc(m.user_id)+'"><option value="Full" '+(String(m.permission_level||'').toLowerCase()==='full'?'selected':'')+'>Full access</option><option value="Read" '+(String(m.permission_level||'').toLowerCase()==='read'?'selected':'')+'>Read only</option></select></div></div><div style="margin-top:7px"><button data-save-member="'+esc(m.user_id)+'">Save Member Settings</button></div><div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'">'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
        (full&&me?'<div class="small" style="margin-top:7px">Your own role and permission cannot be changed here.</div><div style="margin-top:7px"><button class="secondary" data-toggle-access="'+esc(m.user_id)+'" data-enabled="'+(m.access_enabled?'true':'false')+'" disabled>'+ (m.access_enabled?'Disable Access':'Enable Access') +'</button></div>':'')+
        '</div>';
    }).join("");
@@ -2064,15 +2064,23 @@ async function switchToGroup(groupId){
  }
 }
 
-async function refreshSharedMembership(){
- sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;
+let membershipRefreshInProgress=false;
+let lastMembershipSignature="";
+async function refreshSharedMembership(reason="refresh"){
+ if(membershipRefreshInProgress)return;
+ membershipRefreshInProgress=true;
+ const previousGroupId=sharedGroup?.id||localStorage.getItem(ACTIVE_GROUP_KEY)||null;
  const status=$("sharedGroupStatus");
  if(status)status.textContent="Checking group access…";
- if(!sb||!cloudUser){return}
+ if(!sb||!cloudUser){membershipRefreshInProgress=false;return}
  try{
    const {data:members,error:memberError}=await sb.from("group_members").select("group_id,access_enabled,member_role,permission_level").eq("user_id",cloudUser.id).eq("access_enabled",true);
    if(memberError)throw memberError;
+   const membershipSignature=(members||[]).map(m=>[m.group_id,m.access_enabled,m.member_role,m.permission_level].join("|")).sort().join("||");
+   const membershipChanged=membershipSignature!==lastMembershipSignature;
+   lastMembershipSignature=membershipSignature;
    if(!members||!members.length){
+     sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;
      if(status)status.textContent="No active group membership — shared data access is disabled";
      $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
      const help=$("sharedAccessHelp"); if(help)help.textContent="Your access to the shared group is disabled. You cannot view or modify the group's shared information. Ask a Full-access group member to enable your access.";
@@ -2090,14 +2098,14 @@ async function refreshSharedMembership(){
    const g=(groups||[]).find(x=>x.id===first.group_id);
    if(!g)throw Error("Your group membership was found, but the group record could not be loaded.");
    sharedMembership=first;sharedGroup=g;
-   sharedGroupVersion=null;
+   if(membershipChanged || previousGroupId!==g.id || !Number.isInteger(sharedGroupVersion))sharedGroupVersion=null;
    localStorage.setItem(ACTIVE_GROUP_KEY,g.id);
    if(status)status.textContent=g.name+(String(first.permission_level||"").toLowerCase()==="full"?" — Full access":" — Read only");
    $("loadSharedData").disabled=false;
    $("saveSharedData").disabled=String(first.permission_level||"").toLowerCase()!=="full";
    const isFull=String(first.permission_level||"").toLowerCase()==="full";
    const help=$("sharedAccessHelp"); if(help)help.textContent=isFull?"You have Full access. You can load shared data and save changes to the shared group.":"You have Read-only access. You can load shared data, but you cannot save changes to the shared group.";
-   const saveBtn=$("saveSharedData"); if(saveBtn){saveBtn.title=isFull?"Save this device's current group data to the shared group.":"Read-only access: saving changes to the shared group is not available.";}
+   const saveBtn=$("saveSharedData"); if(saveBtn)saveBtn.title=isFull?"Save this device's current group data to the shared group.":"Read-only access: saving changes to the shared group is not available.";
    const notice=$("sharedSaveNotice"); if(notice)notice.textContent=isFull?"":"Saving is unavailable because this account has Read-only access. A Full-access member can change the permission.";
    applyLocalEditPermissions();
    applyCloudAccessNavigation();
@@ -2106,13 +2114,11 @@ async function refreshSharedMembership(){
    sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;
    if(status)status.textContent="Unable to check group access";
    $("loadSharedData").disabled=true;$("saveSharedData").disabled=true;
-   const help=$("sharedAccessHelp"); if(help)help.textContent="The app could not verify your shared-group access. Check your connection or ask a Full-access group member to verify your membership.";
+   const help=$("sharedAccessHelp"); if(help)help.textContent="The app could not verify its shared-group access. Check your connection or ask a Full-access group member to verify your membership.";
    const notice=$("sharedSaveNotice"); if(notice)notice.textContent="Shared-group saving is unavailable until access can be verified.";
-   console.error(err);
-   applyLocalEditPermissions();
    applyCloudAccessNavigation();
    await refreshGroupAccessUI();
- }
+ }finally{membershipRefreshInProgress=false;}
 }
 async function loadSharedGroupData(){
  if(!sb||!cloudUser){alert("Sign in to your cloud account first.");return}
@@ -2288,6 +2294,10 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 window.addEventListener("focus",()=>setTimeout(()=>checkForSharedUpdates("focus"),150));
 // V2.36.31: while the app remains open, periodically check for newer shared data.
 setInterval(()=>checkForSharedUpdates("interval"),15000);
+// V2.36.32: automatically refresh App Member access while the app is open.
+setInterval(()=>refreshSharedMembership("interval"),15000);
+window.addEventListener("focus",()=>setTimeout(()=>refreshSharedMembership("focus"),150));
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")setTimeout(()=>refreshSharedMembership("resume"),150)});
 const toggleCloudPassword=$("toggleCloudPassword");
 if(toggleCloudPassword){
   toggleCloudPassword.onclick=()=>{
@@ -2301,5 +2311,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.31</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.32</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
