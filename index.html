@@ -801,6 +801,12 @@ textarea.publisher-address-field{
   #dashboard .dashboard-section-card{padding:14px 15px}
   #dashboard .dashboard-section-card h3{font-size:17px}
 }
+/* V2.36.41 — dashboard and mobile safety improvements */
+.dashboard-section-card .call{margin:5px 0;width:100%;text-align:left}
+.call-completed{opacity:.9}
+.call-scheduled{font-weight:500}
+.recent-card{margin-top:12px}
+@media(max-width:700px){#dashboard .dashboard-section-card .call{font-size:13px;padding:9px 10px}}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -837,7 +843,8 @@ textarea.publisher-address-field{
 </div></div></div>
 <div id="stats" class="grid"></div>
 <div class="card dashboard-section-card attention-card"><h3>Needs Attention</h3><div id="attention">None.</div></div>
-<div class="card dashboard-section-card upcoming-card"><h3>Scheduled Shepherding Calls</h3><div id="upcoming">None.</div></div>
+<div class="card dashboard-section-card upcoming-card"><h3>Upcoming Visits</h3><div id="upcoming">None.</div></div>
+<div class="card dashboard-section-card recent-card"><h3>Recently Completed</h3><div id="recentCompleted">None.</div></div>
 </section>
 
 <section id="publishers" class="page">
@@ -1440,7 +1447,8 @@ function currentUserDisplayName(){
 }
 function callButton(c){
  const attribution=c.scheduledBy?' <div class="small" style="margin-top:4px">Scheduled by: '+esc(c.scheduledBy)+'</div>':'';
- return '<button class="call" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+attribution+'</button>';
+ const cls=c.status==='Completed'?' call-completed':(c.status==='Scheduled'?' call-scheduled':' call-other');
+ return '<button class="call'+cls+'" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+attribution+'</button>';
 }
 function renderCalls(){
  const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
@@ -1510,49 +1518,21 @@ function publisherSortParts(p){
 let dashboardExpanded=null;
 function renderDashboard(){
  const active=db.publishers.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
- const buckets={
-  publishers:active,
-  overdue:active.filter(p=>status(p)[0]==="over"),
-  soon:active.filter(p=>status(p)[0]==="soon"),
-  ok:active.filter(p=>status(p)[0]==="ok")
- };
- Object.values(buckets).forEach(list=>list.sort((a,b)=>{
-   const aa=publisherSortParts(a),bb=publisherSortParts(b);
-   return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
- }));
- const cards=[
-  ["publishers","Publishers",buckets.publishers.length],
-  ["overdue","Overdue",buckets.overdue.length],
-  ["soon","Due Soon",buckets.soon.length],
-  ["ok","Up to Date",buckets.ok.length]
- ];
+ const buckets={publishers:active,overdue:active.filter(p=>status(p)[0]==="over"),soon:active.filter(p=>status(p)[0]==="soon"),ok:active.filter(p=>status(p)[0]==="ok")};
+ Object.values(buckets).forEach(list=>list.sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})}));
+ const cards=[["publishers","Publishers",buckets.publishers.length],["overdue","Overdue",buckets.overdue.length],["soon","Due Soon",buckets.soon.length],["ok","Up to Date",buckets.ok.length]];
  let statsHtml=cards.map(([key,label,count])=>'<button type="button" class="stat-card dashboard-stat-button" data-stat-filter="'+key+'" aria-expanded="'+(dashboardExpanded===key?'true':'false')+'"><div class="stat">'+count+'</div><div class="stat-label-row"><span class="stat-label">'+label+'</span><span class="stat-chevron" aria-hidden="true">⌄</span></div></button>').join("");
- if(dashboardExpanded){
-   const list=buckets[dashboardExpanded]||[];
-   const label=cards.find(x=>x[0]===dashboardExpanded)?.[1]||"Publishers";
-   statsHtml+='<div class="dashboard-stat-panel"><div class="dashboard-stat-panel-header">'+label+'</div>';
-   statsHtml+=list.map(p=>'<button type="button" class="dashboard-stat-person" data-stat-publisher="'+esc(p.id)+'">'+esc(publisherDisplayName(p))+'</button>').join("") || '<div class="dashboard-stat-empty">None.</div>';
-   statsHtml+='</div>';
- }
- $("stats").className="dashboard-stats";
- $("stats").innerHTML=statsHtml;
- document.querySelectorAll("[data-stat-filter]").forEach(b=>b.onclick=()=>{
-   const key=b.dataset.statFilter;
-   dashboardExpanded=dashboardExpanded===key?null:key;
-   renderDashboard();
- });
- document.querySelectorAll("[data-stat-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.statPublisher));
- const attention=db.publishers.filter(p=>status(p)[0]!=="ok" && (p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{
-   const aa=publisherSortParts(a),bb=publisherSortParts(b);
-   return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"}) || aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"});
- });
- $("attention").innerHTML=attention.map(p=>{
-   const scheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
-  const dotClass=scheduled?"scheduled":"attention";
-  const dotTitle=scheduled?"Scheduled visit":"Needs attention";
-  return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>';
- }).join("")||"None.";
- document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.attentionPublisher));
+ if(dashboardExpanded){const list=buckets[dashboardExpanded]||[],label=cards.find(x=>x[0]===dashboardExpanded)?.[1]||"Publishers";statsHtml+='<div class="dashboard-stat-panel"><div class="dashboard-stat-panel-header">'+label+'</div>';statsHtml+=list.map(p=>'<button type="button" class="dashboard-stat-person" data-stat-publisher="'+esc(p.id)+'">'+esc(publisherDisplayName(p))+'</button>').join("")||'<div class="dashboard-stat-empty">None.</div>';statsHtml+='</div>';}
+ $("stats").className="dashboard-stats";$('stats').innerHTML=statsHtml;
+ document.querySelectorAll("[data-stat-filter]").forEach(b=>b.onclick=()=>{const key=b.dataset.statFilter;dashboardExpanded=dashboardExpanded===key?null:key;renderDashboard()});
+ document.querySelectorAll("[data-stat-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.statPublisher));
+ const attention=db.publishers.filter(p=>status(p)[0]!=="ok"&&(p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})});
+ $("attention").innerHTML=attention.map(p=>{const scheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled"),dotClass=scheduled?"scheduled":"attention",dotTitle=scheduled?"Scheduled visit":"Needs attention";return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>'}).join("")||"None.";
+ document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.attentionPublisher));
+ const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+ $("upcoming").innerHTML=scheduled.slice(0,5).map(callButton).join("")||"None.";document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+ const completed=[...db.calls].filter(c=>c.status==="Completed").sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
+ $("recentCompleted").innerHTML=completed.slice(0,5).map(callButton).join("")||"None.";document.querySelectorAll("#recentCompleted [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  applyLocalEditPermissions();
 }
 function render(){
@@ -1661,6 +1641,7 @@ function editPublisher(id){
  $("fFamilyHead").onchange=updateAddressState;
  $("deletePub").onclick=()=>{
    if(!confirm("Delete this publisher? This will also remove their shepherding records from this group. This cannot be undone."))return;
+   if(!confirm("Are you sure you want to delete "+(p.name||"this publisher")+"?\n\nThe publisher and all of their shepherding history will be permanently removed from this group."))return;
    db.calls=db.calls.filter(c=>c.publisherId!==p.id);
    db.publishers=db.publishers.filter(x=>x.id!==p.id);
    persist();closeModal();
@@ -1735,7 +1716,13 @@ function showPublisherDetails(publisherId){
  const scheduledBody=scheduled.length?scheduled.map(visitCard).join(""):'<p>No scheduled visits.</p>';
  const recent=completed.slice(0,3).map(c=>'<li>'+esc(formatCallDateTime(c))+' — '+esc(c.type||"Home Visit")+'</li>').join("");
  const ro=String(sharedMembership?.permission_level||"").toLowerCase()==="read";
- openModal('<h2>'+esc(p.name)+'</h2><p class="small">'+esc(p.role||"Publisher")+(p.house?' • '+esc(p.house):'')+'</p><div class="card"><h3>Scheduled Shepherding Visits</h3>'+scheduledBody+'</div><div class="card"><h3>Recent Shepherding History</h3>'+(recent?'<ul>'+recent+'</ul>':'<p>No completed shepherding calls have been recorded.</p>')+'</div><div class="actions">'+(ro?'':'<button id="publisherDetailEdit">Edit Publisher</button><button id="publisherDetailSchedule" class="secondary">Schedule Shepherding Call</button>')+'<button id="publisherDetailHistory" class="secondary">View Full History</button><button id="publisherDetailClose" class="secondary">Close</button></div>');
+ const contact=[];
+ if(p.phone)contact.push('<b>Phone:</b> '+esc(p.phone));
+ if(p.email)contact.push('<b>Email:</b> '+esc(p.email));
+ if(p.address)contact.push('<b>Address:</b><br>'+esc(p.address).replace(/\n/g,'<br>'));
+ if(p.house)contact.push('<b>Household:</b> '+esc(p.house));
+ const contactCard=contact.length?'<div class="card"><h3>Publisher Information</h3><p>'+contact.join('<br>')+'</p></div>':'';
+ openModal('<h2>'+esc(p.name)+'</h2><p class="small">'+esc(p.role||"Publisher")+(p.familyHead?' • Family Head':'')+'</p>'+contactCard+'<div class="card"><h3>Scheduled Shepherding Visits</h3>'+scheduledBody+'</div><div class="card"><h3>Recent Shepherding History</h3>'+(recent?'<ul>'+recent+'</ul>':'<p>No completed shepherding calls have been recorded.</p>')+'</div><div class="actions">'+(ro?'':'<button id="publisherDetailEdit">Edit Publisher</button><button id="publisherDetailSchedule" class="secondary">Schedule Shepherding Call</button>')+'<button id="publisherDetailHistory" class="secondary">View Full History</button><button id="publisherDetailClose" class="secondary">Close</button></div>');
  document.querySelectorAll("[data-publisher-open-call]").forEach(b=>b.onclick=()=>{const id=b.dataset.publisherOpenCall;closeModal();editCall(id)});
  $("publisherDetailClose").onclick=closeModal;
  if($("publisherDetailEdit"))$("publisherDetailEdit").onclick=()=>{closeModal();editPublisher(publisherId)};
@@ -2381,5 +2368,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.40</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.41</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
