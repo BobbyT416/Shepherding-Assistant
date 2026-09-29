@@ -841,6 +841,7 @@ textarea.publisher-address-field{
 <span><i class="publisher-key-dot attention"></i>Needs attention</span>
 <span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
 </div></div></div>
+<div id="stats" class="grid"></div>
 <div class="card dashboard-section-card attention-card"><h3>Needs Attention</h3><div id="attention">None.</div></div>
 <div class="card dashboard-section-card upcoming-card"><h3>Upcoming Visits</h3><div id="upcoming">None.</div></div>
 <div class="card dashboard-section-card recent-card"><h3>Recently Completed</h3><div id="recentCompleted">None.</div></div>
@@ -1466,8 +1467,7 @@ function callButton(c){
  return '<button class="call'+cls+'" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+attribution+'</button>';
 }
 function renderCalls(){
- const today=new Date().toISOString().slice(0,10);
- const scheduled=[...db.calls].filter(c=>String(c.status||"").trim().toLowerCase()==="scheduled" && String(c.date||"")>=today).sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+ const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
  $("upcoming").innerHTML=scheduled.slice(0,8).map(callButton).join("")||"None.";
  document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  applyLocalEditPermissions();
@@ -1531,12 +1531,19 @@ function publisherSortParts(p){
  const parts=display.split(",",2);
  return {last:(parts[0]||"").trim(),first:(parts[1]||"").trim()};
 }
+let dashboardExpanded=null;
 function renderDashboard(){
+ const active=db.publishers.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
+ const buckets={publishers:active,overdue:active.filter(p=>statusForDashboard(p)[0]==="over"),soon:active.filter(p=>statusForDashboard(p)[0]==="soon"),ok:active.filter(p=>statusForDashboard(p)[0]==="ok")};
+ Object.values(buckets).forEach(list=>list.sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})}));
+ // V2.36.43 — The four summary boxes were removed from the Dashboard.
+ // Needs Attention is the actionable status summary.
+ $("stats").className="dashboard-stats";
+ $("stats").innerHTML="";
  const attention=db.publishers.filter(p=>statusForDashboard(p)[0]!=="ok"&&(p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})});
  $("attention").innerHTML=attention.map(p=>{const scheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled"),dotClass=scheduled?"scheduled":"attention",dotTitle=scheduled?"Scheduled visit":"Needs attention";return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>'}).join("")||"None.";
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.attentionPublisher));
- const today=new Date().toISOString().slice(0,10);
- const scheduled=[...db.calls].filter(c=>String(c.status||"").trim().toLowerCase()==="scheduled" && String(c.date||"")>=today).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+ const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
  $("upcoming").innerHTML=scheduled.slice(0,5).map(callButton).join("")||"None.";document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  const cutoff=new Date();cutoff.setMonth(cutoff.getMonth()-3);
  const completed=[...db.calls].filter(c=>c.status==="Completed"&&(()=>{const d=new Date((c.completedDate||c.date||"")+"T12:00");return !Number.isNaN(d.getTime())&&d>=cutoff})()).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
@@ -2378,5 +2385,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.44</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.43</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
