@@ -613,6 +613,15 @@ textarea.publisher-address-field{
 }
 
 
+/* V2.36.40 — remove legacy mobile Household/Last Shepherding labels from the new 3-column publisher layout. */
+@media(max-width:700px){
+  #publishers .publishers-table-card table.publisher-directory-table tbody tr.publisher-directory-row td:nth-child(3)::before,
+  #publishers .publishers-table-card table.publisher-directory-table tbody tr.publisher-directory-row td:nth-child(4)::before{
+    content:none!important;
+    display:none!important;
+  }
+}
+
 /* V2.36.39 — tighten mobile publisher action columns so Next Visit and History stay together. */
 @media(max-width:700px){
   #publishers .publisher-next-visit,
@@ -2372,5 +2381,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.39</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.40</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
