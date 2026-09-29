@@ -841,7 +841,6 @@ textarea.publisher-address-field{
 <span><i class="publisher-key-dot attention"></i>Needs attention</span>
 <span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
 </div></div></div>
-<div id="stats" class="grid"></div>
 <div class="card dashboard-section-card attention-card"><h3>Needs Attention</h3><div id="attention">None.</div></div>
 <div class="card dashboard-section-card upcoming-card"><h3>Upcoming Visits</h3><div id="upcoming">None.</div></div>
 <div class="card dashboard-section-card recent-card"><h3>Recently Completed</h3><div id="recentCompleted">None.</div></div>
@@ -1531,17 +1530,7 @@ function publisherSortParts(p){
  const parts=display.split(",",2);
  return {last:(parts[0]||"").trim(),first:(parts[1]||"").trim()};
 }
-let dashboardExpanded=null;
 function renderDashboard(){
- const active=db.publishers.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
- const buckets={publishers:active,overdue:active.filter(p=>statusForDashboard(p)[0]==="over"),soon:active.filter(p=>statusForDashboard(p)[0]==="soon"),ok:active.filter(p=>statusForDashboard(p)[0]==="ok")};
- Object.values(buckets).forEach(list=>list.sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})}));
- const cards=[["publishers","Publishers",buckets.publishers.length],["overdue","Overdue",buckets.overdue.length],["soon","Due Soon",buckets.soon.length],["ok","Up to Date",buckets.ok.length]];
- let statsHtml=cards.map(([key,label,count])=>'<button type="button" class="stat-card dashboard-stat-button" data-stat-filter="'+key+'" aria-expanded="'+(dashboardExpanded===key?'true':'false')+'"><div class="stat">'+count+'</div><div class="stat-label-row"><span class="stat-label">'+label+'</span><span class="stat-chevron" aria-hidden="true">⌄</span></div></button>').join("");
- if(dashboardExpanded){const list=buckets[dashboardExpanded]||[],label=cards.find(x=>x[0]===dashboardExpanded)?.[1]||"Publishers";statsHtml+='<div class="dashboard-stat-panel"><div class="dashboard-stat-panel-header">'+label+'</div>';statsHtml+=list.map(p=>'<button type="button" class="dashboard-stat-person" data-stat-publisher="'+esc(p.id)+'">'+esc(publisherDisplayName(p))+'</button>').join("")||'<div class="dashboard-stat-empty">None.</div>';statsHtml+='</div>';}
- $("stats").className="dashboard-stats";$('stats').innerHTML=statsHtml;
- document.querySelectorAll("[data-stat-filter]").forEach(b=>b.onclick=()=>{const key=b.dataset.statFilter;dashboardExpanded=dashboardExpanded===key?null:key;renderDashboard()});
- document.querySelectorAll("[data-stat-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.statPublisher));
  const attention=db.publishers.filter(p=>statusForDashboard(p)[0]!=="ok"&&(p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})});
  $("attention").innerHTML=attention.map(p=>{const scheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled"),dotClass=scheduled?"scheduled":"attention",dotTitle=scheduled?"Scheduled visit":"Needs attention";return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>'}).join("")||"None.";
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.attentionPublisher));
@@ -2387,5 +2376,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.42</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.43</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
