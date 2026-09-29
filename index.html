@@ -479,6 +479,7 @@ textarea.publisher-address-field{
 .publisher-directory-table td{padding:5px 9px;border-top:1px solid rgba(127,127,127,.18);vertical-align:middle}
 .publisher-directory-row{height:38px}
 .publisher-directory-row .publisher-name-button{display:inline-flex;align-items:center;gap:8px;width:auto;background:none;border:0;padding:2px 0;margin:0;font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.publisher-next-visit-cell{white-space:nowrap}.publisher-next-visit{font-size:12px;padding:5px 8px}.publisher-no-visit{color:#98a2b3}
 .publisher-status-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:0 0 9px}
 .publisher-status-dot.current{background:#2e9b4f}.publisher-status-dot.attention{background:#b52f2f}.publisher-status-dot.scheduled{background:#d49a00}.publisher-status-dot.inactive{background:#9aa0a6}.inactive-section-heading td{padding:10px 8px 6px!important;font-size:12px;font-weight:700;letter-spacing:.03em;color:#667085;background:transparent;border-top:1px solid #d9dde3}.inactive-publisher-row{opacity:.82}
 .publisher-history-cell{width:1%;white-space:nowrap}.publisher-history-cell button{font-size:11px;padding:4px 7px;margin:0}
@@ -827,7 +828,7 @@ textarea.publisher-address-field{
   </div>
 </div>
 <p id="publisherCount" class="small publisher-count"></p>
-<div class="card publishers-table-card"><table class="publisher-directory-table"><thead><tr><th>Publisher</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
+<div class="card publishers-table-card"><table class="publisher-directory-table"><thead><tr><th>Publisher</th><th>Next Visit</th><th>History</th></tr></thead><tbody id="publisherRows"></tbody></table></div>
 </section>
 
 
@@ -1328,29 +1329,32 @@ function renderPublishers(){
  const active=sorted.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
  const inactive=sorted.filter(p=>(p.role||"").trim().toLowerCase()==="inactive");
  $("publisherCount").textContent=db.publishers.length+" publisher"+(db.publishers.length===1?"":"s")+" in this group";
- if(!sorted.length){$("publisherRows").innerHTML='<tr><td colspan="2">No publishers yet.</td></tr>';return;}
+ if(!sorted.length){$("publisherRows").innerHTML='<tr><td colspan="3">No publishers yet.</td></tr>';return;}
  let rows="";
  const addRows=(list,isInactive)=>{
    list.forEach(p=>{
      const count=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Completed").length;
-     const hasScheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled");
+     const scheduled=db.calls.filter(c=>c.publisherId===p.id&&c.status==="Scheduled").sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+     const hasScheduled=scheduled.length>0;
      let dotClass="current",dotTitle="Up to date";
      if(isInactive){dotClass="inactive";dotTitle="Inactive";}
      else if(hasScheduled){dotClass="scheduled";dotTitle="Scheduled visit";}
      else if(status(p)[0]==="over"){dotClass="attention";dotTitle="Needs attention";}
      const display=publisherDisplayName(p);
      const head=p.familyHead?'<span class="family-head-badge">Family Head</span>':"";
-     rows+='<tr class="publisher-directory-row'+(isInactive?' inactive-publisher-row':'')+'"><td><button class="publisher-name-button" data-edit-publisher="'+esc(p.id)+'" title="Edit '+esc(p.name)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(display)+'</button>'+head+'</td><td class="publisher-history-cell"><button class="secondary" data-history="'+esc(p.id)+'">History'+(count?' ('+count+')':'')+'</button></td></tr>';
+     const next=hasScheduled?'<button class="secondary publisher-next-visit" data-publisher-visit="'+esc(p.id)+'" title="View scheduled visit">'+esc(formatScheduledDate(scheduled[0]))+(scheduled[0].time?' at '+esc(formatTime(scheduled[0].time)):'')+'</button>':'<span class="small publisher-no-visit">—</span>';
+     rows+='<tr class="publisher-directory-row'+(isInactive?' inactive-publisher-row':'')+'"><td><button class="publisher-name-button" data-publisher-details="'+esc(p.id)+'" title="View '+esc(p.name)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(display)+'</button>'+head+'</td><td class="publisher-next-visit-cell">'+next+'</td><td class="publisher-history-cell"><button class="secondary" data-history="'+esc(p.id)+'">History'+(count?' ('+count+')':'')+'</button></td></tr>';
    });
  };
  addRows(active,false);
  if(inactive.length){
-   rows+='<tr class="inactive-section-heading"><td colspan="2">Inactive Publishers</td></tr>';
+   rows+='<tr class="inactive-section-heading"><td colspan="3">Inactive Publishers</td></tr>';
    addRows(inactive,true);
  }
  $("publisherRows").innerHTML=rows;
  document.querySelectorAll("[data-history]").forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
- document.querySelectorAll("[data-edit-publisher]").forEach(b=>b.onclick=()=>editPublisher(b.dataset.editPublisher));
+ document.querySelectorAll("[data-publisher-details]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.publisherDetails));
+ document.querySelectorAll("[data-publisher-visit]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.publisherVisit));
  applyLocalEditPermissions();
 }
 function updateFriendlyCallDate(dateId,timeId,outId){
@@ -1694,6 +1698,22 @@ $("addPublisher").onclick=()=>{
    closeModal();persist();
  };
 };
+function showPublisherDetails(publisherId){
+ const p=db.publishers.find(x=>x.id===publisherId);if(!p)return;
+ const scheduled=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Scheduled").sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+ const completed=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
+ const brothersFor=c=>[shepherdingBrotherName(c.brother1,c.brother1Other),shepherdingBrotherName(c.brother2,c.brother2Other)].filter(Boolean).join(" & ")||"Not recorded";
+ const visitCard=c=>'<div class="card" style="margin:10px 0"><h3 style="margin-bottom:6px">'+esc(formatCallDateTime(c))+'</h3><p><b>Brothers:</b> '+esc(brothersFor(c))+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+(c.scheduledBy?'<br><b>Scheduled by:</b> '+esc(c.scheduledBy):'')+'</p>'+(c.notes?'<p><b>Notes:</b><br>'+esc(c.notes)+'</p>':'')+'<div class="actions"><button class="secondary" data-publisher-open-call="'+esc(c.id)+'">View / Edit Visit</button></div></div>';
+ const scheduledBody=scheduled.length?scheduled.map(visitCard).join(""):'<p>No scheduled visits.</p>';
+ const recent=completed.slice(0,3).map(c=>'<li>'+esc(formatCallDateTime(c))+' — '+esc(c.type||"Home Visit")+'</li>').join("");
+ const ro=String(sharedMembership?.permission_level||"").toLowerCase()==="read";
+ openModal('<h2>'+esc(p.name)+'</h2><p class="small">'+esc(p.role||"Publisher")+(p.house?' • '+esc(p.house):'')+'</p><div class="card"><h3>Scheduled Shepherding Visits</h3>'+scheduledBody+'</div><div class="card"><h3>Recent Shepherding History</h3>'+(recent?'<ul>'+recent+'</ul>':'<p>No completed shepherding calls have been recorded.</p>')+'</div><div class="actions">'+(ro?'':'<button id="publisherDetailEdit">Edit Publisher</button><button id="publisherDetailSchedule" class="secondary">Schedule Shepherding Call</button>')+'<button id="publisherDetailHistory" class="secondary">View Full History</button><button id="publisherDetailClose" class="secondary">Close</button></div>');
+ document.querySelectorAll("[data-publisher-open-call]").forEach(b=>b.onclick=()=>{const id=b.dataset.publisherOpenCall;closeModal();editCall(id)});
+ $("publisherDetailClose").onclick=closeModal;
+ if($("publisherDetailEdit"))$("publisherDetailEdit").onclick=()=>{closeModal();editPublisher(publisherId)};
+ if($("publisherDetailSchedule"))$("publisherDetailSchedule").onclick=()=>{closeModal();openScheduleCall(publisherId)};
+ $("publisherDetailHistory").onclick=()=>{closeModal();showHistory(publisherId)};
+}
 function showHistory(publisherId){
  const p=db.publishers.find(x=>x.id===publisherId);if(!p)return;
  const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
@@ -2333,5 +2353,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.34</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.35</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
