@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<!-- Shepherding Assistant v2.36.45: dashboard cleanup + robust scheduled-visit rendering -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shepherding Assistant</title>
@@ -1467,7 +1468,7 @@ function callButton(c){
  return '<button class="call'+cls+'" data-call="'+esc(c.id)+'"><b>'+esc(callDisplayName(c))+'</b> — '+formatCallDateTime(c)+' — '+esc(c.status)+attribution+'</button>';
 }
 function renderCalls(){
- const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+ const scheduled=[...db.calls].filter(c=>String(c.status||"").trim().toLowerCase()==="scheduled").sort((x,y)=>(String(x.date||"")+String(x.time||"")).localeCompare(String(y.date||"")+String(y.time||"")));
  $("upcoming").innerHTML=scheduled.slice(0,8).map(callButton).join("")||"None.";
  document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  applyLocalEditPermissions();
@@ -1534,20 +1535,23 @@ function publisherSortParts(p){
 let dashboardExpanded=null;
 function renderDashboard(){
  const active=db.publishers.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
- const buckets={publishers:active,overdue:active.filter(p=>statusForDashboard(p)[0]==="over"),soon:active.filter(p=>statusForDashboard(p)[0]==="soon"),ok:active.filter(p=>statusForDashboard(p)[0]==="ok")};
- Object.values(buckets).forEach(list=>list.sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})}));
- // V2.36.43 — The four summary boxes were removed from the Dashboard.
- // Needs Attention is the actionable status summary.
+ const attention=db.publishers.filter(p=>statusForDashboard(p)[0]!=="ok"&&(p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})});
  $("stats").className="dashboard-stats";
  $("stats").innerHTML="";
- const attention=db.publishers.filter(p=>statusForDashboard(p)[0]!=="ok"&&(p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})});
- $("attention").innerHTML=attention.map(p=>{const scheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled"),dotClass=scheduled?"scheduled":"attention",dotTitle=scheduled?"Scheduled visit":"Needs attention";return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>'}).join("")||"None.";
+ $("attention").innerHTML=attention.map(p=>{
+   const scheduled=db.calls.some(c=>c.publisherId===p.id&&String(c.status||"").trim().toLowerCase()==="scheduled");
+   const dotClass=scheduled?"scheduled":"attention";
+   const dotTitle=scheduled?"Scheduled visit":"Needs attention";
+   return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>'
+ }).join("")||"None.";
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.attentionPublisher));
- const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
- $("upcoming").innerHTML=scheduled.slice(0,5).map(callButton).join("")||"None.";document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+ const scheduled=[...db.calls].filter(c=>String(c.status||"").trim().toLowerCase()==="scheduled").sort((a,b)=>(String(a.date||"")+String(a.time||"")).localeCompare(String(b.date||"")+String(b.time||"")));
+ $("upcoming").innerHTML=scheduled.slice(0,5).map(callButton).join("")||"None.";
+ document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  const cutoff=new Date();cutoff.setMonth(cutoff.getMonth()-3);
- const completed=[...db.calls].filter(c=>c.status==="Completed"&&(()=>{const d=new Date((c.completedDate||c.date||"")+"T12:00");return !Number.isNaN(d.getTime())&&d>=cutoff})()).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
- $("recentCompleted").innerHTML=completed.slice(0,5).map(callButton).join("")||"None.";document.querySelectorAll("#recentCompleted [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
+ const completed=[...db.calls].filter(c=>String(c.status||"").trim().toLowerCase()==="completed"&&(()=>{const d=new Date((c.completedDate||c.date||"")+"T12:00");return !Number.isNaN(d.getTime())&&d>=cutoff})()).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
+ $("recentCompleted").innerHTML=completed.slice(0,5).map(callButton).join("")||"None.";
+ document.querySelectorAll("#recentCompleted [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  applyLocalEditPermissions();
 }
 function render(){
@@ -2385,5 +2389,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.43</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.45</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
