@@ -501,7 +501,8 @@ textarea.publisher-address-field{
   }
   #publishers .publishers-table-card table.publisher-directory-table tbody tr.publisher-directory-row{
     display:grid!important;
-    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-columns:minmax(0,1fr) max-content max-content!important;
+    column-gap:4px!important;
     align-items:center!important;
     width:100%!important;
     min-height:48px!important;
@@ -521,6 +522,7 @@ textarea.publisher-address-field{
   #publishers .publishers-table-card table.publisher-directory-table tbody tr.publisher-directory-row td{
     display:flex!important;
     width:auto!important;
+    min-width:0!important;
     min-height:0!important;
     padding:0!important;
     margin:0!important;
@@ -529,8 +531,7 @@ textarea.publisher-address-field{
     box-sizing:border-box!important;
   }
   #publishers .publishers-table-card table.publisher-directory-table tbody tr.publisher-directory-row td:nth-child(1)::before,
-  #publishers .publishers-table-card table.publisher-directory-table tbody tr.publisher-directory-row td:nth-child(2)::before,
-  #publishers .publishers-table-card table.publisher-directory-table tbody tr.publisher-directory-row td:nth-child(3)::before{
+  #publishers .publishers-table-card table.publisher-directory-table tbody tr.publisher-directory-row td:nth-child(2)::before{
     content:none!important;
   }
   #publishers .publisher-directory-row .publisher-name-button{
@@ -539,6 +540,7 @@ textarea.publisher-address-field{
     gap:8px!important;
     width:auto!important;
     max-width:100%!important;
+    min-width:0!important;
     padding:2px 0!important;
     margin:0!important;
     font-size:16px!important;
@@ -552,18 +554,25 @@ textarea.publisher-address-field{
     height:9px!important;
     flex:0 0 9px!important;
   }
+  #publishers .publisher-next-visit-cell{
+    width:auto!important;
+    justify-content:flex-end!important;
+    white-space:nowrap!important;
+  }
   #publishers .publisher-history-cell{
     width:auto!important;
     justify-content:flex-end!important;
     white-space:nowrap!important;
   }
+  #publishers .publisher-next-visit,
   #publishers .publisher-history-cell button{
     font-size:11px!important;
     line-height:1.2!important;
-    padding:5px 8px!important;
+    padding:5px 7px!important;
     margin:0!important;
     width:auto!important;
     border-radius:7px!important;
+    white-space:nowrap!important;
   }
   #publishers .publishers-table-card table.publisher-directory-table tbody tr.family-divider{
     display:grid!important;
@@ -603,6 +612,15 @@ textarea.publisher-address-field{
   }
 }
 
+
+/* V2.36.39 — tighten mobile publisher action columns so Next Visit and History stay together. */
+@media(max-width:700px){
+  #publishers .publisher-next-visit,
+  #publishers .publisher-history-cell button{
+    font-size:10.5px!important;
+    padding:5px 6px!important;
+  }
+}
 
 /* V2.34.3 status key */
 .publisher-status-key{
@@ -2354,5 +2372,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.38</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.39</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
