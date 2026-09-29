@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Shepherding Assistant v2.36.45: dashboard cleanup + robust scheduled-visit rendering -->
+<!-- Shepherding Assistant v2.36.47: dashboard heading alignment UX polish -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shepherding Assistant</title>
@@ -800,7 +800,7 @@ textarea.publisher-address-field{
 @media(max-width:700px){
   #dashboard{padding-left:14px;padding-right:14px}
   #dashboard .dashboard-section-card{padding:14px 15px}
-  #dashboard .dashboard-section-card h3{font-size:17px}
+  #dashboard .dashboard-section-card h3{font-size:17px;justify-content:flex-start}
 }
 /* V2.36.42 — dashboard and mobile safety improvements */
 .dashboard-section-card .call{margin:5px 0;width:100%;text-align:left}
@@ -811,7 +811,7 @@ textarea.publisher-address-field{
 
 /* V2.36.46 — dashboard UX polish only */
 #dashboard .dashboard-section-card{border:1px solid #dfe3e8;box-shadow:0 1px 2px rgba(16,24,40,.04)}
-#dashboard .dashboard-section-card h3{font-size:18px;margin-bottom:10px}
+#dashboard .dashboard-section-card h3{font-size:18px;margin-bottom:10px;justify-content:flex-start}
 #dashboard .attention-card h3:before,#dashboard .upcoming-card h3:before,#dashboard .recent-card h3:before{content:"";display:inline-block;width:4px;height:20px;border-radius:4px;margin-right:9px;vertical-align:-3px}
 #dashboard .attention-card h3:before{background:#b52f2f}
 #dashboard .upcoming-card h3:before{background:#d49a00}
@@ -821,7 +821,7 @@ textarea.publisher-address-field{
 #dashboard .dashboard-section-card .call b{font-weight:650}
 #dashboard .dashboard-empty{padding:4px 0 2px;color:#667085}
 #dashboard .dashboard-section-note{font-size:12px;color:#667085;margin:-4px 0 9px}
-@media(max-width:700px){#dashboard .dashboard-section-card h3{font-size:17px}#dashboard .dashboard-section-card .call{font-size:13px;padding:10px 11px}}
+@media(max-width:700px){#dashboard .dashboard-section-card h3{font-size:17px;justify-content:flex-start}#dashboard .dashboard-section-card .call{font-size:13px;padding:10px 11px}}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -2403,5 +2403,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.46</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.47</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
