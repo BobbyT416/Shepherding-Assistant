@@ -801,7 +801,7 @@ textarea.publisher-address-field{
   #dashboard .dashboard-section-card{padding:14px 15px}
   #dashboard .dashboard-section-card h3{font-size:17px}
 }
-/* V2.36.41 — dashboard and mobile safety improvements */
+/* V2.36.42 — dashboard and mobile safety improvements */
 .dashboard-section-card .call{margin:5px 0;width:100%;text-align:left}
 .call-completed{opacity:.9}
 .call-scheduled{font-weight:500}
@@ -889,6 +889,8 @@ textarea.publisher-address-field{
 <div class="row"><div><label>Group Overseer</label><select id="groupOverseer"></select></div>
 <div><label>Assistant</label><select id="groupAssistant"></select></div></div>
 <p class="small">The dropdowns use the publishers/elders entered in this copy of the group.</p>
+<div class="family-head-row"><input id="includeEldersHouseholds" type="checkbox"><label for="includeEldersHouseholds">Include elders and their households in Needs Attention</label></div>
+<p class="small">This can be changed individually in each publisher's settings.</p>
 <button id="saveGroup">Save Group</button>
 </div>
 <div class="card"><h3>Other Elders</h3><div id="elderList"></div>
@@ -978,7 +980,7 @@ const LOCAL_DIRTY_PREFIX="shepherding_assistant_dirty_group_v1_";
 let returnToDashboardAfterCallEdit=false;
 let db=loadData();
 
-function fresh(){return {version:2,group:{name:"",overseer:"",assistant:"",elders:[]},publishers:[],calls:[],reminderMonths:3}}
+function fresh(){return {version:2,group:{name:"",overseer:"",assistant:"",elders:[],includeEldersHouseholds:false},publishers:[],calls:[],reminderMonths:3}}
 function formatPhone(value){
  const raw=String(value||"").trim();
  if(!raw)return "";
@@ -1007,6 +1009,7 @@ function normalizePublisherRecord(p){
  if(typeof p.phone!=="string")p.phone=p.phone?String(p.phone):"";
  p.phone=formatPhone(p.phone);
  p.familyHead=!!p.familyHead;
+ if(typeof p.needsAttentionOverride!=="string"||!["group","include","exclude"].includes(p.needsAttentionOverride))p.needsAttentionOverride="group";
  if(typeof p.role!=="string")p.role="";
  return p;
 }
@@ -1014,6 +1017,8 @@ function loadData(){
  try{
    const x=JSON.parse(localStorage.getItem(DATA_KEY));
    if(x&&x.version===2){
+     x.group=x.group||{};
+     if(typeof x.group.includeEldersHouseholds!=="boolean")x.group.includeEldersHouseholds=false;
      x.publishers=(x.publishers||[]).map(normalizePublisherRecord);
      x.calls=(x.calls||[]).map(c=>{if(typeof c.wholeFamily!=="boolean")c.wholeFamily=false;return c});
      return x;
@@ -1265,6 +1270,16 @@ function syncAllPublisherLast(){
    p.last=completed.length?(completed[0].completedDate||completed[0].date):"";
  });
 }
+function needsAttentionExcluded(p){
+ const override=String(p?.needsAttentionOverride||"group").toLowerCase();
+ if(override==="exclude")return true;
+ if(override==="include")return false;
+ if(!!db.group?.includeEldersHouseholds)return false;
+ const house=String(p?.house||"").trim().toLowerCase();
+ if(!house)return String(p?.role||"").trim().toLowerCase()==="elder";
+ return db.publishers.some(x=>String(x.house||"").trim().toLowerCase()===house&&String(x.role||"").trim().toLowerCase()==="elder");
+}
+function statusForDashboard(p){ return needsAttentionExcluded(p)?["ok","Excluded from Needs Attention"]:status(p); }
 function status(p){
  if(!p.last)return ["over","Never contacted"];
  const months=(Date.now()-new Date(p.last+"T12:00:00"))/86400000/30.44;
@@ -1327,6 +1342,7 @@ function renderGroup(){
  $("dashOverseer").textContent=db.group.overseer||"Not configured";
  $("dashAssistant").textContent=db.group.assistant||"Not configured";
  $("groupName").value=db.group.name;
+ $("includeEldersHouseholds").checked=!!db.group.includeEldersHouseholds;
  $("groupOverseer").innerHTML=groupLeaderOptions(db.group.overseer);
  $("groupAssistant").innerHTML=groupLeaderOptions(db.group.assistant);
  $("reminderMonths").value=db.reminderMonths;
@@ -1518,7 +1534,7 @@ function publisherSortParts(p){
 let dashboardExpanded=null;
 function renderDashboard(){
  const active=db.publishers.filter(p=>(p.role||"").trim().toLowerCase()!=="inactive");
- const buckets={publishers:active,overdue:active.filter(p=>status(p)[0]==="over"),soon:active.filter(p=>status(p)[0]==="soon"),ok:active.filter(p=>status(p)[0]==="ok")};
+ const buckets={publishers:active,overdue:active.filter(p=>statusForDashboard(p)[0]==="over"),soon:active.filter(p=>statusForDashboard(p)[0]==="soon"),ok:active.filter(p=>statusForDashboard(p)[0]==="ok")};
  Object.values(buckets).forEach(list=>list.sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})}));
  const cards=[["publishers","Publishers",buckets.publishers.length],["overdue","Overdue",buckets.overdue.length],["soon","Due Soon",buckets.soon.length],["ok","Up to Date",buckets.ok.length]];
  let statsHtml=cards.map(([key,label,count])=>'<button type="button" class="stat-card dashboard-stat-button" data-stat-filter="'+key+'" aria-expanded="'+(dashboardExpanded===key?'true':'false')+'"><div class="stat">'+count+'</div><div class="stat-label-row"><span class="stat-label">'+label+'</span><span class="stat-chevron" aria-hidden="true">⌄</span></div></button>').join("");
@@ -1526,12 +1542,13 @@ function renderDashboard(){
  $("stats").className="dashboard-stats";$('stats').innerHTML=statsHtml;
  document.querySelectorAll("[data-stat-filter]").forEach(b=>b.onclick=()=>{const key=b.dataset.statFilter;dashboardExpanded=dashboardExpanded===key?null:key;renderDashboard()});
  document.querySelectorAll("[data-stat-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.statPublisher));
- const attention=db.publishers.filter(p=>status(p)[0]!=="ok"&&(p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})});
+ const attention=db.publishers.filter(p=>statusForDashboard(p)[0]!=="ok"&&(p.role||"").trim().toLowerCase()!=="inactive").sort((a,b)=>{const aa=publisherSortParts(a),bb=publisherSortParts(b);return aa.last.localeCompare(bb.last,undefined,{sensitivity:"base"})||aa.first.localeCompare(bb.first,undefined,{sensitivity:"base"})});
  $("attention").innerHTML=attention.map(p=>{const scheduled=db.calls.some(c=>c.publisherId===p.id&&c.status==="Scheduled"),dotClass=scheduled?"scheduled":"attention",dotTitle=scheduled?"Scheduled visit":"Needs attention";return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>'}).join("")||"None.";
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.attentionPublisher));
  const scheduled=[...db.calls].filter(c=>c.status==="Scheduled").sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
  $("upcoming").innerHTML=scheduled.slice(0,5).map(callButton).join("")||"None.";document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
- const completed=[...db.calls].filter(c=>c.status==="Completed").sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
+ const cutoff=new Date();cutoff.setMonth(cutoff.getMonth()-3);
+ const completed=[...db.calls].filter(c=>c.status==="Completed"&&(()=>{const d=new Date((c.completedDate||c.date||"")+"T12:00");return !Number.isNaN(d.getTime())&&d>=cutoff})()).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
  $("recentCompleted").innerHTML=completed.slice(0,5).map(callButton).join("")||"None.";document.querySelectorAll("#recentCompleted [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  applyLocalEditPermissions();
 }
@@ -1629,7 +1646,8 @@ function editPublisher(id){
  const head=familyHeadForHouse(p.house,p.id);
  const inherited=head && !p.familyHead;
  const initialAddress=inherited ? (head.address||"") : (p.address||"");
- openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP">'+esc(initialAddress)+'</textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="deletePub" class="danger">Delete Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
+ openModal('<h2>Edit Publisher</h2><label>Name</label><input id="fName" autocomplete="off" value="'+esc(p.name||"")+'"><label>Role</label><select id="fRole">'+publisherRoleOptions(p.role||"")+'</select><label>Household</label><input id="fHouse" autocomplete="off" value="'+esc(p.house||"")+'"><div class="family-head-row"><input id="fFamilyHead" type="checkbox" '+(p.familyHead?'checked':'')+'><label for="fFamilyHead">Family Head</label></div>'+ (inherited?'<p class="family-address-note">Address is inherited from the family head.</p>':'') +'<label>Phone</label><input id="fPhone" type="tel" autocomplete="tel" value="'+esc(p.phone||"")+'"><label>Email</label><input id="fEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done" value="'+esc(p.email||"")+'"><label>Last Shepherding Contact</label><input id="fLast" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="MM/DD/YYYY" value="'+esc(publisherFormDateValue(p))+'"><label>Address</label><textarea id="fAddress" class="publisher-address-field" rows="4" placeholder="Street address&#10;Apt / Unit&#10;City, State ZIP">'+esc(initialAddress)+'</textarea><label>Notes</label><textarea id="fNotes">'+esc(p.notes||"")+'</textarea><div class="card" style="margin-top:12px"><label>Needs Attention</label><select id="fNeedsAttention"><option value="group">Use group setting</option><option value="include">Include this publisher</option><option value="exclude">Exclude this publisher</option></select><p class="small">Use this to override the group setting for this publisher.</p></div><div class="actions"><button id="savePub">Save Changes</button><button id="schedulePublisherCall" class="secondary">Schedule Shepherding Call</button><button id="deletePub" class="danger">Delete Publisher</button><button id="cancel" class="secondary">Cancel</button></div>');
+ $("fNeedsAttention").value=String(p.needsAttentionOverride||"group");
  attachPhoneFormatter();
  const updateAddressState=()=>{
    const h=familyHeadForHouse($("fHouse").value,p.id);
@@ -1653,6 +1671,7 @@ function editPublisher(id){
    const oldHouse=(p.house||"").trim();
    const house=$("fHouse").value.trim();
    const familyHead=$("fFamilyHead").checked;
+   const needsAttentionOverride=$("fNeedsAttention").value||"group";
    const last=normalizePublisherDate($("fLast").value);
    if($("fLast").value.trim()&&!last){alert("Please enter the date as MM/DD/YYYY.");return}
    if(familyHead){
@@ -1839,7 +1858,7 @@ $("saveGroup").onclick=()=>{
  const overseer=$("groupOverseer").value;
  const assistant=$("groupAssistant").value;
  if(overseer&&assistant&&overseer===assistant){alert("The Group Overseer and Assistant must be two different people.");return}
- db.group.name=name;db.group.overseer=overseer;db.group.assistant=assistant;
+ db.group.name=name;db.group.overseer=overseer;db.group.assistant=assistant;db.group.includeEldersHouseholds=$("includeEldersHouseholds").checked;
  persist();
  alert("Group information saved.");
 };
@@ -2368,5 +2387,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.41</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.42</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
