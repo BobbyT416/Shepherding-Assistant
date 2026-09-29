@@ -808,6 +808,20 @@ textarea.publisher-address-field{
 .call-scheduled{font-weight:500}
 .recent-card{margin-top:12px}
 @media(max-width:700px){#dashboard .dashboard-section-card .call{font-size:13px;padding:9px 10px}}
+
+/* V2.36.46 — dashboard UX polish only */
+#dashboard .dashboard-section-card{border:1px solid #dfe3e8;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+#dashboard .dashboard-section-card h3{font-size:18px;margin-bottom:10px}
+#dashboard .attention-card h3:before,#dashboard .upcoming-card h3:before,#dashboard .recent-card h3:before{content:"";display:inline-block;width:4px;height:20px;border-radius:4px;margin-right:9px;vertical-align:-3px}
+#dashboard .attention-card h3:before{background:#b52f2f}
+#dashboard .upcoming-card h3:before{background:#d49a00}
+#dashboard .recent-card h3:before{background:#586474}
+#dashboard .dashboard-section-card .call{border:1px solid #dfe3e8;border-radius:8px;background:#fff;box-shadow:none}
+#dashboard .dashboard-section-card .call:hover{background:#f7f9fb;border-color:#cbd2da}
+#dashboard .dashboard-section-card .call b{font-weight:650}
+#dashboard .dashboard-empty{padding:4px 0 2px;color:#667085}
+#dashboard .dashboard-section-note{font-size:12px;color:#667085;margin:-4px 0 9px}
+@media(max-width:700px){#dashboard .dashboard-section-card h3{font-size:17px}#dashboard .dashboard-section-card .call{font-size:13px;padding:10px 11px}}
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -843,9 +857,9 @@ textarea.publisher-address-field{
 <span><i class="publisher-key-dot scheduled"></i>Scheduled</span>
 </div></div></div>
 <div id="stats" class="grid"></div>
-<div class="card dashboard-section-card attention-card"><h3>Needs Attention</h3><div id="attention">None.</div></div>
-<div class="card dashboard-section-card upcoming-card"><h3>Upcoming Visits</h3><div id="upcoming">None.</div></div>
-<div class="card dashboard-section-card recent-card"><h3>Recently Completed</h3><div id="recentCompleted">None.</div></div>
+<div class="card dashboard-section-card attention-card"><h3>Needs Attention</h3><div class="dashboard-section-note">Publishers who need your attention.</div><div id="attention"><div class="dashboard-empty">No publishers currently need attention.</div></div></div>
+<div class="card dashboard-section-card upcoming-card"><h3>Upcoming Shepherding Calls</h3><div class="dashboard-section-note">Your next scheduled shepherding visits.</div><div id="upcoming"><div class="dashboard-empty">No upcoming shepherding calls scheduled.</div></div></div>
+<div class="card dashboard-section-card recent-card"><h3>Recently Completed</h3><div class="dashboard-section-note">Completed shepherding calls from the last 3 months.</div><div id="recentCompleted"><div class="dashboard-empty">No shepherding calls completed in the last 3 months.</div></div></div>
 </section>
 
 <section id="publishers" class="page">
@@ -1543,14 +1557,14 @@ function renderDashboard(){
    const dotClass=scheduled?"scheduled":"attention";
    const dotTitle=scheduled?"Scheduled visit":"Needs attention";
    return '<div class="attention-item"><button class="attention-link" data-attention-publisher="'+esc(p.id)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(publisherDisplayName(p))+'</button><span class="attention-reason"> — '+esc(status(p)[1])+'</span></div>'
- }).join("")||"None.";
+ }).join("")||'<div class="dashboard-empty">No publishers currently need attention.</div>';
  document.querySelectorAll("[data-attention-publisher]").forEach(b=>b.onclick=()=>showPublisherDetails(b.dataset.attentionPublisher));
  const scheduled=[...db.calls].filter(c=>String(c.status||"").trim().toLowerCase()==="scheduled").sort((a,b)=>(String(a.date||"")+String(a.time||"")).localeCompare(String(b.date||"")+String(b.time||"")));
- $("upcoming").innerHTML=scheduled.slice(0,5).map(callButton).join("")||"None.";
+ $("upcoming").innerHTML=scheduled.slice(0,5).map(callButton).join("")||'<div class="dashboard-empty">No upcoming shepherding calls scheduled.</div>';
  document.querySelectorAll("#upcoming [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  const cutoff=new Date();cutoff.setMonth(cutoff.getMonth()-3);
  const completed=[...db.calls].filter(c=>String(c.status||"").trim().toLowerCase()==="completed"&&(()=>{const d=new Date((c.completedDate||c.date||"")+"T12:00");return !Number.isNaN(d.getTime())&&d>=cutoff})()).sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
- $("recentCompleted").innerHTML=completed.slice(0,5).map(callButton).join("")||"None.";
+ $("recentCompleted").innerHTML=completed.slice(0,5).map(callButton).join("")||'<div class="dashboard-empty">No shepherding calls completed in the last 3 months.</div>';
  document.querySelectorAll("#recentCompleted [data-call]").forEach(b=>b.onclick=()=>editCall(b.dataset.call));
  applyLocalEditPermissions();
 }
@@ -2389,5 +2403,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.45</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.46</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
