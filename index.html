@@ -16,7 +16,7 @@ button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b423
 label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
 input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;border:1px solid #bdc5d0;border-radius:7px;background:#fff;font:inherit}
 textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}.link-button{background:none;border:0;padding:0;color:#2563eb;text-decoration:underline;cursor:pointer;font:inherit}@media(max-width:650px){.row{grid-template-columns:1fr}}
+.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}@media(max-width:650px){.row{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e1e4e8;text-align:left}
 .call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.shepherding-calls-card{margin-top:16px}.completed-calls-card{margin-top:14px}.completed-calls-card h3{color:#4d5968}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
 .modal{
@@ -901,7 +901,6 @@ textarea.publisher-address-field{
 <label>Password</label><div class="password-row"><input id="cloudPassword" type="password" autocomplete="current-password"><button id="toggleCloudPassword" type="button" class="secondary" aria-pressed="false">Show</button></div>
 <p class="small">Use Show if you need to verify the password you entered.</p>
 <div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="saveCloudProfile" class="secondary" style="display:none">Save Name</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
-<p style="margin:8px 0 0"><button id="forgotPassword" type="button" class="link-button">Forgot Password?</button></p>
 </div>
 <div id="cloudDataActions" style="display:none">
 <p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
@@ -1185,12 +1184,24 @@ function shepherdingBrotherOptions(selected=""){
    const role=(p.role||"").trim().toLowerCase();
    return role==="elder" || role==="ministerial servant";
  });
- return '<option value="">— None —</option>'+eligible.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===selected?' selected':'')+'>'+esc(p.name)+'</option>').join("");
+ return '<option value="">— None —</option>'+eligible.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===selected?' selected':'')+'>'+esc(p.name)+'</option>').join("")+'<option value="__other__"'+(selected==="__other__"?' selected':'')+'>Other / Enter Name…</option>';
 }
-function shepherdingBrotherName(value){
+function shepherdingBrotherName(value,otherName=""){
  if(!value)return "";
+ if(value==="__other__")return String(otherName||"").trim();
  const p=(db.publishers||[]).find(x=>x.id===value);
  return p ? p.name : value;
+}
+function shepherdingBrotherOtherHtml(prefix,value,otherName=""){
+ const show=value==="__other__";
+ return '<div id="'+prefix+'OtherWrap" style="display:'+(show?'block':'none')+';margin-top:8px"><input id="'+prefix+'Other" type="text" value="'+esc(otherName||"")+'" placeholder="Enter brother’s name"></div>';
+}
+function bindShepherdingBrotherOther(prefix){
+ const select=$(prefix),wrap=$(prefix+"OtherWrap"),input=$(prefix+"Other");
+ if(!select||!wrap||!input)return;
+ const sync=()=>{const other=select.value==="__other__";wrap.style.display=other?"block":"none"};
+ select.onchange=sync;
+ sync();
 }
 function brotherOptions(selected=""){
  const a=[db.group.overseer,db.group.assistant,...(db.group.elders||[])].filter(Boolean);
@@ -1561,17 +1572,22 @@ function openScheduleCall(publisherId="",initialDate="",returnVisit=false){
  const date=initialDate||today;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
  const typeOpts='<option'+(returnVisit?'':' selected')+'>Home Visit</option><option>Kingdom Hall</option><option>Telephone</option><option>Other</option><option'+(returnVisit?' selected':'')+'>Return Visit</option>';
- openModal('<h2>'+ (returnVisit?'Schedule Return Visit':'Schedule Shepherding Call') +'</h2><label>Publisher</label><select id="cPub">'+pubOpts+'</select>'+visitScopeOptions(false)+'<div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="cDate" type="date" value="'+esc(date)+'"><span id="cDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+shepherdingBrotherOptions()+'</select></div><div><label>Brother 2</label><select id="cB2">'+shepherdingBrotherOptions()+'</select></div></div><label>Type</label><select id="cType">'+typeOpts+'</select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
- $("cancelCall").onclick=closeModal;
+ openModal('<h2>'+ (returnVisit?'Schedule Return Visit':'Schedule Shepherding Call') +'</h2><label>Publisher</label><select id="cPub">'+pubOpts+'</select>'+visitScopeOptions(false)+'<div class="row"><div><label>Date</label><div class="friendly-date-input"><input id="cDate" type="date" value="'+esc(date)+'"><span id="cDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="cTime" type="time" value="19:00"></div></div><div class="row"><div><label>Brother 1</label><select id="cB1">'+shepherdingBrotherOptions()+'</select>'+shepherdingBrotherOtherHtml("cB1")+'</div><div><label>Brother 2</label><select id="cB2">'+shepherdingBrotherOptions()+'</select>'+shepherdingBrotherOtherHtml("cB2")+'</div></div><label>Type</label><select id="cType">'+typeOpts+'</select><label>Notes</label><textarea id="cNotes"></textarea><div class="actions"><button id="saveCall">Save Call</button><button id="cancelCall" class="secondary">Cancel</button></div>');
+ bindShepherdingBrotherOther("cB1");
+ bindShepherdingBrotherOther("cB2"); $("cancelCall").onclick=closeModal;
  updateFriendlyCallDate("cDate","cTime","cDateDisplay");
  $("cDate").onchange=()=>updateFriendlyCallDate("cDate","cTime","cDateDisplay");
  $("cTime").onchange=()=>updateFriendlyCallDate("cDate","cTime","cDateDisplay");
  $("saveCall").onclick=()=>{
    const p=db.publishers.find(x=>x.id===$("cPub").value);if(!p)return;
    const b1=$("cB1").value,b2=$("cB2").value;
-   if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
+   const b1Other=b1==="__other__"?$("cB1Other").value.trim():"";
+   const b2Other=b2==="__other__"?$("cB2Other").value.trim():"";
+   if(b1&&b2&&b1!=="__other__"&&b2!=="__other__"&&b1===b2){alert("Please select two different brothers.");return}
+   if(b1==="__other__"&&!b1Other){alert("Enter the name for Brother 1.");return}
+   if(b2==="__other__"&&!b2Other){alert("Enter the name for Brother 2.");return}
    const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
-   db.calls.push({id:uid(),publisherId:p.id,name:p.name,date:$("cDate").value,time:$("cTime").value,brother1:b1,brother2:b2,type:$("cType").value,notes:$("cNotes").value,status:"Scheduled",wholeFamily,scheduledBy:currentUserDisplayName()});
+   db.calls.push({id:uid(),publisherId:p.id,name:p.name,date:$("cDate").value,time:$("cTime").value,brother1:b1,brother1Other:b1Other,brother2:b2,brother2Other:b2Other,type:$("cType").value,notes:$("cNotes").value,status:"Scheduled",wholeFamily,scheduledBy:currentUserDisplayName()});
    closeModal();persist();
  };
 }
@@ -1682,7 +1698,7 @@ function showHistory(publisherId){
  const p=db.publishers.find(x=>x.id===publisherId);if(!p)return;
  const history=db.calls.filter(c=>c.publisherId===publisherId&&c.status==="Completed").sort((a,b)=>((b.completedDate||b.date)+(b.time||"")).localeCompare((a.completedDate||a.date)+(a.time||"")));
  let body=history.length?history.map(c=>{
-   const brothers=[c.brother1,c.brother2].filter(Boolean).map(shepherdingBrotherName).join(" & ")||"Not recorded";
+   const brothers=[shepherdingBrotherName(c.brother1,c.brother1Other),shepherdingBrotherName(c.brother2,c.brother2Other)].filter(Boolean).join(" & ")||"Not recorded";
    return '<div class="card"><h3>'+formatCallDateTime(c)+'</h3><p><b>Scheduled Date:</b> '+esc(formatScheduledDate(c))+'<br><b>Completed Date:</b> '+esc(formatCompletedDate(c))+'<br><b>Brothers:</b> '+esc(brothers)+'<br><b>Type:</b> '+esc(c.type||"Home Visit")+'</p><p><b>Notes:</b><br>'+esc(c.notes||"No notes recorded.")+'</p><div class="actions"><button class="secondary" data-history-call="'+esc(c.id)+'">Open Visit Details</button><button class="danger" data-history-delete="'+esc(c.id)+'">Delete Visit</button></div></div>'
  }).join(""):'<div class="card"><p>No completed shepherding calls have been recorded for '+esc(p.name)+'.</p></div>';
  openModal('<h2>Shepherding History</h2><p><b>'+esc(p.name)+'</b></p>'+body+'<div class="actions"><button id="closeHistory" class="secondary">Close</button></div>');
@@ -1706,8 +1722,9 @@ function editCall(id,fromCalendar=false){
  const c=db.calls.find(x=>x.id===id);if(!c)return;
  const pubOpts=db.publishers.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===c.publisherId?' selected':'')+'>'+esc(p.name)+'</option>').join("");
  const today=new Date().toISOString().slice(0,10);
- openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select>'+visitScopeOptions(!!c.wholeFamily)+'<div class="row"><div><label>Scheduled Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+shepherdingBrotherOptions(c.brother1)+'</select></div><div><label>Brother 2</label><select id="eB2">'+shepherdingBrotherOptions(c.brother2)+'</select></div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><div id="completionDateRow" style="display:'+(c.status==="Completed"?'block':'none')+'"><label>Completion Date</label><div class="friendly-date-input"><input id="eCompletedDate" type="date" value="'+esc(c.completedDate||today)+'"><span id="eCompletedDateDisplay" class="friendly-input-text"></span></div><p class="small">Enter the actual date the shepherding call took place.</p></div><label>Notes</label><textarea id="eNotes">'+esc(c.notes||"")+'</textarea>'+(c.scheduledBy?'<p class="small" style="margin:10px 0 0"><b>Scheduled by:</b> '+esc(c.scheduledBy)+'</p>':'')+'<div class="actions"><button id="markCompleted" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Mark Completed</button><button id="updateCall">Save Changes</button><button id="cancelVisit" class="danger" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Cancel Visit</button><button id="deleteCall" class="danger" style="display:'+(c.status!=="Scheduled"?'inline-block':'none')+'">Delete Visit</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
- $("cancelEdit").onclick=()=>{
+ openModal('<h2>Shepherding Call</h2><label>Publisher</label><select id="ePub">'+pubOpts+'</select>'+visitScopeOptions(!!c.wholeFamily)+'<div class="row"><div><label>Scheduled Date</label><div class="friendly-date-input"><input id="eDate" type="date" value="'+esc(c.date)+'"><span id="eDateDisplay" class="friendly-input-text"></span></div></div><div><label>Time</label><input id="eTime" type="time" value="'+esc(c.time||"")+'"></div></div><div class="row"><div><label>Brother 1</label><select id="eB1">'+shepherdingBrotherOptions(c.brother1)+'</select>'+shepherdingBrotherOtherHtml("eB1",c.brother1,c.brother1Other)+'</div><div><label>Brother 2</label><select id="eB2">'+shepherdingBrotherOptions(c.brother2)+'</select>'+shepherdingBrotherOtherHtml("eB2",c.brother2,c.brother2Other)+'</div></div><label>Type</label><select id="eType"><option'+(c.type==="Home Visit"?" selected":"")+'>Home Visit</option><option'+(c.type==="Kingdom Hall"?" selected":"")+'>Kingdom Hall</option><option'+(c.type==="Telephone"?" selected":"")+'>Telephone</option><option'+(c.type==="Other"?" selected":"")+'>Other</option><option'+(c.type==="Return Visit"?" selected":"")+'>Return Visit</option></select><label>Status</label><select id="eStatus"><option'+(c.status==="Scheduled"?" selected":"")+'>Scheduled</option><option'+(c.status==="Completed"?" selected":"")+'>Completed</option><option'+(c.status==="Cancelled"?" selected":"")+'>Cancelled</option></select><div id="completionDateRow" style="display:'+(c.status==="Completed"?'block':'none')+'"><label>Completion Date</label><div class="friendly-date-input"><input id="eCompletedDate" type="date" value="'+esc(c.completedDate||today)+'"><span id="eCompletedDateDisplay" class="friendly-input-text"></span></div><p class="small">Enter the actual date the shepherding call took place.</p></div><label>Notes</label><textarea id="eNotes">'+esc(c.notes||"")+'</textarea>'+(c.scheduledBy?'<p class="small" style="margin:10px 0 0"><b>Scheduled by:</b> '+esc(c.scheduledBy)+'</p>':'')+'<div class="actions"><button id="markCompleted" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Mark Completed</button><button id="updateCall">Save Changes</button><button id="cancelVisit" class="danger" style="display:'+(c.status==="Scheduled"?'inline-block':'none')+'">Cancel Visit</button><button id="deleteCall" class="danger" style="display:'+(c.status!=="Scheduled"?'inline-block':'none')+'">Delete Visit</button><button id="cancelEdit" class="secondary">Cancel</button></div>');
+ bindShepherdingBrotherOther("eB1");
+ bindShepherdingBrotherOther("eB2"); $("cancelEdit").onclick=()=>{
   closeModal();
   if(returnToDashboardAfterCallEdit){
     returnToDashboardAfterCallEdit=false;
@@ -1761,15 +1778,19 @@ function editCall(id,fromCalendar=false){
  };
  $("updateCall").onclick=()=>{
    const p=db.publishers.find(x=>x.id===$("ePub").value),b1=$("eB1").value,b2=$("eB2").value;
+   const b1Other=b1==="__other__"?$("eB1Other").value.trim():"";
+   const b2Other=b2==="__other__"?$("eB2Other").value.trim():"";
    if(!p)return;
    const oldPublisherId=c.publisherId;
    const oldStatus=c.status;
-   if(b1&&b2&&b1===b2){alert("Please select two different brothers.");return}
+   if(b1&&b2&&b1!=="__other__"&&b2!=="__other__"&&b1===b2){alert("Please select two different brothers.");return}
+   if(b1==="__other__"&&!b1Other){alert("Enter the name for Brother 1.");return}
+   if(b2==="__other__"&&!b2Other){alert("Enter the name for Brother 2.");return}
    const wholeFamily=document.querySelector('input[name="visitScope"]:checked')?.value==="family";
    const newStatus=$("eStatus").value;
    const completionDate=$("eCompletedDate")?$("eCompletedDate").value:"";
    if(newStatus==="Completed"&&!completionDate){alert("Please enter the completion date.");return}
-   c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother2=b2;c.type=$("eType").value;c.status=newStatus;c.completedDate=newStatus==="Completed"?(completionDate||new Date().toISOString().slice(0,10)):"";c.notes=$("eNotes").value;c.wholeFamily=wholeFamily;   if(oldStatus==="Completed" && oldPublisherId!==c.publisherId)syncPublisherLast(oldPublisherId);
+   c.publisherId=p.id;c.name=p.name;c.date=$("eDate").value;c.time=$("eTime").value;c.brother1=b1;c.brother1Other=b1Other;c.brother2=b2;c.brother2Other=b2Other;c.type=$("eType").value;c.status=newStatus;c.completedDate=newStatus==="Completed"?(completionDate||new Date().toISOString().slice(0,10)):"";c.notes=$("eNotes").value;c.wholeFamily=wholeFamily;   if(oldStatus==="Completed" && oldPublisherId!==c.publisherId)syncPublisherLast(oldPublisherId);
    syncPublisherLast(c.publisherId);
    const goHome=returnToDashboardAfterCallEdit;
    returnToDashboardAfterCallEdit=false;
@@ -1940,7 +1961,6 @@ async function connectSupabase(){
  if(!window.supabase||!window.supabase.createClient){alert("The Supabase library could not be loaded. Check your internet connection and try again.");return}
  try{
    sb=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-   attachRecoveryHandler();
    saveCloudConfig(url,key);
    const {data,error}=await sb.auth.getSession();
    if(error)throw error;
@@ -2161,7 +2181,6 @@ async function connectSupabase(){
  if(!window.supabase||!window.supabase.createClient){alert("The Supabase library could not be loaded. Check your internet connection and try again.");return}
  try{
    sb=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-   attachRecoveryHandler();
    saveCloudConfig(url,key);
    const {data,error}=await sb.auth.getSession();
    if(error)throw error;
@@ -2174,42 +2193,6 @@ async function connectSupabase(){
 async function disconnectSupabase(){
  if(sb){try{await sb.auth.signOut()}catch(e){}}
  sb=null;cloudUser=null;sharedMembership=null;sharedGroup=null;sharedGroupVersion=null;localStorage.removeItem(CLOUD_CONFIG_KEY);$("supabaseKey").value="";setCloudStatus("Not connected");updateCloudUI();
-}
-let recoveryHandlerAttached=false;
-async function sendPasswordReset(){
- if(!sb){alert("Connect to Supabase first.");return}
- const email=$("cloudEmail").value.trim();
- if(!email){alert("Enter your email address first.");return}
- try{
-   const redirectTo=window.location.origin+window.location.pathname;
-   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
-   if(error)throw error;
-   alert("Password reset instructions were sent to "+email+". Check your email and follow the link to set a new password.");
- }catch(err){alert("Unable to send password reset email: "+(err?.message||err));}
-}
-async function finishPasswordRecovery(){
- const password=prompt("Enter your new password (at least 6 characters):");
- if(password===null)return;
- if(password.length<6){alert("Supabase requires a password of at least 6 characters.");return}
- const confirmPassword=prompt("Re-enter your new password:");
- if(confirmPassword===null)return;
- if(password!==confirmPassword){alert("The passwords do not match. Please use Forgot Password again to retry.");return}
- try{
-   const {error}=await sb.auth.updateUser({password});
-   if(error)throw error;
-   alert("Your password has been changed successfully. You can now sign in with your new password.");
-   await sb.auth.signOut();
-   cloudUser=null;
-   updateCloudUI();
- }catch(err){alert("Unable to change your password: "+(err?.message||err));}
-}
-function attachRecoveryHandler(){
- if(!sb||recoveryHandlerAttached)return;
- recoveryHandlerAttached=true;
- sb.auth.onAuthStateChange((event,session)=>{
-   cloudUser=session?.user||cloudUser;
-   if(event==="PASSWORD_RECOVERY") setTimeout(()=>finishPasswordRecovery(),0);
- });
 }
 async function cloudSignIn(){
  if(!sb){alert("Connect to Supabase first.");return}
@@ -2251,7 +2234,6 @@ function initCloud(){
  $("connectSupabase").onclick=connectSupabase;
  $("disconnectSupabase").onclick=disconnectSupabase;
  $("cloudSignIn").onclick=cloudSignIn;
- $("forgotPassword").onclick=sendPasswordReset;
  $("cloudSignUp").onclick=cloudSignUp;
  $("cloudSignOut").onclick=cloudSignOut;
  $("saveCloudProfile").onclick=saveCloudProfile;
@@ -2351,5 +2333,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.33</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.34</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
