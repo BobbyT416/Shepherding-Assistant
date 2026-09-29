@@ -1342,7 +1342,7 @@ function renderPublishers(){
      else if(status(p)[0]==="over"){dotClass="attention";dotTitle="Needs attention";}
      const display=publisherDisplayName(p);
      const head=p.familyHead?'<span class="family-head-badge">Family Head</span>':"";
-     const next=hasScheduled?'<button class="secondary publisher-next-visit" data-publisher-visit="'+esc(p.id)+'" title="View scheduled visit">'+esc(formatScheduledDate(scheduled[0]))+(scheduled[0].time?' at '+esc(formatTime(scheduled[0].time)):'')+'</button>':'<span class="small publisher-no-visit">—</span>';
+     const next=hasScheduled?'<button class="secondary publisher-next-visit" data-publisher-visit="'+esc(p.id)+'" title="View scheduled visit">'+esc(formatScheduledDate(scheduled[0]))+(scheduled[0].time?' at '+esc(new Date('2000-01-01T'+scheduled[0].time).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})):'')+'</button>':'<span class="small publisher-no-visit">—</span>';
      rows+='<tr class="publisher-directory-row'+(isInactive?' inactive-publisher-row':'')+'"><td><button class="publisher-name-button" data-publisher-details="'+esc(p.id)+'" title="View '+esc(p.name)+'"><span class="publisher-status-dot '+dotClass+'" title="'+esc(dotTitle)+'" aria-label="'+esc(dotTitle)+'"></span>'+esc(display)+'</button>'+head+'</td><td class="publisher-next-visit-cell">'+next+'</td><td class="publisher-history-cell"><button class="secondary" data-history="'+esc(p.id)+'">History'+(count?' ('+count+')':'')+'</button></td></tr>';
    });
  };
@@ -2353,5 +2353,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.35</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.36</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
