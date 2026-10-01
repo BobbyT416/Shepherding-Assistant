@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Shepherding Assistant v2.36.47: dashboard heading alignment UX polish -->
+<!-- Shepherding Assistant v2.36.48: Settings UX simplification -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shepherding Assistant</title>
@@ -17,7 +17,7 @@ button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b423
 label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
 input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;border:1px solid #bdc5d0;border-radius:7px;background:#fff;font:inherit}
 textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}@media(max-width:650px){.row{grid-template-columns:1fr}}
+.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}.settings-card h3{margin:0 0 10px}.status-box,.account-summary{margin:12px 0;padding:12px;border:1px solid #d8dde5;border-radius:9px;background:#f8fafc}.account-summary .actions{margin-top:10px}.danger-zone{border-color:#e6b8b4}.danger-zone h3{color:#9f1d16}@media(max-width:650px){.row{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e1e4e8;text-align:left}
 .call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.shepherding-calls-card{margin-top:16px}.completed-calls-card{margin-top:14px}.completed-calls-card h3{color:#4d5968}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
 .modal{
@@ -930,29 +930,34 @@ textarea.publisher-address-field{
 </section>
 
 <section id="settings" class="page">
-<h2>Settings & Local & Shared Cloud Data</h2><div class="card"><b>Storage status:</b> <span id="storageStatus">Local data active</span></div>
-<div class="card"><label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
-<p class="small">A publisher is flagged when the last completed shepherding call is older than this interval.</p></div>
-<div class="card" id="myGroupsCard" style="display:none">
+<h2>Settings</h2>
+<div class="card settings-card">
+<h3>Reminders</h3>
+<label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
+<p class="small">A publisher is flagged when the last completed shepherding call is older than this interval.</p>
+</div>
+<div class="card settings-card" id="myGroupsCard" style="display:none">
 <h3>My Groups</h3>
 <p class="small">These are the Field Service Groups your account is authorized to access. Publishers do not have app accounts or access.</p>
 <div id="myGroupsList"><p class="small">Sign in to view your groups.</p></div>
 <div class="actions"><button id="createNewGroup" class="secondary">+ Create New Group</button></div>
 </div>
-<div class="card">
-<h3>Shared Cloud (Supabase)</h3>
-<p class="small">Automatic cloud sync keeps authorized App Members up to date while version protection prevents one person's changes from silently overwriting another's. The publishable key is safe for browser use; never enter a secret/service-role key here.</p>
-<div class="row"><div><label>Supabase Project URL</label><input id="supabaseUrl" type="url" placeholder="https://your-project.supabase.co" autocomplete="off"></div><div><label>Supabase Publishable Key</label><input id="supabaseKey" type="password" placeholder="sb_publishable_..." autocomplete="off"></div></div>
-<div class="actions"><button id="connectSupabase">Connect</button><button id="disconnectSupabase" class="secondary">Disconnect</button></div>
-<div class="card" style="margin:13px 0 0"><b>Connection:</b> <span id="cloudStatus">Not connected</span><br><span id="cloudUserStatus" class="small">No cloud account signed in.</span><br><span id="cloudSyncStatus" class="small">Sync status: Not synced</span></div>
+<div class="card settings-card">
+<h3>Shared Cloud</h3>
+<p class="small">Your group stays synchronized for authorized App Members. Connection details are kept in this browser.</p>
+<div class="status-box"><b>Connection:</b> <span id="cloudStatus">Not connected</span><br><span id="cloudSyncStatus" class="small">Sync status: Not synced</span></div>
+<div id="cloudAccountSummary" class="account-summary">
+  <div><b>Cloud Account</b></div>
+  <div id="cloudUserStatus" class="small">Not currently logged in.</div>
+  <div class="actions"><button id="cloudLoginToggle" class="secondary">Log In</button><button id="cloudLogoutSummary" class="danger" style="display:none">Log Out</button><button id="disconnectSupabase" class="secondary">Disconnect</button></div>
+</div>
 <div id="cloudAuth" style="display:none">
 <h4 style="margin:0 0 8px">Cloud Account</h4>
-<p class="small">Use your own Shepherding Assistant account. Your group administrator adds your account to the shared group after you create it.</p>
+<p class="small">Sign in to your Shepherding Assistant account, or create an account if you do not have one yet.</p>
 <label>Email</label><input id="cloudEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false">
 <div class="row"><div><label>First Name</label><input id="cloudFirstName" type="text" autocomplete="given-name" placeholder="First name"></div><div><label>Last Name</label><input id="cloudLastName" type="text" autocomplete="family-name" placeholder="Last name"></div></div>
-<p class="small">Your name is used to identify you in Admin Access and activity history.</p>
+<p class="small">First and last name are required only when creating a new account.</p>
 <label>Password</label><div class="password-row"><input id="cloudPassword" type="password" autocomplete="current-password"><button id="toggleCloudPassword" type="button" class="secondary" aria-pressed="false">Show</button></div>
-<p class="small">Use Show if you need to verify the password you entered.</p>
 <div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="saveCloudProfile" class="secondary" style="display:none">Save Name</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
 </div>
 <div id="cloudDataActions" style="display:none">
@@ -962,7 +967,7 @@ textarea.publisher-address-field{
 <p id="sharedSaveNotice" class="small" style="margin-top:6px"></p>
 </div>
 </div>
-<div class="card"><h3>Transfer / Backup</h3>
+<div class="card settings-card"><h3>Backup & Restore</h3>
 <p>Backup files are separate from Shared Cloud sync. Use one backup option to save or share a local copy of the group data.</p>
 <div class="backup-options">
 <label class="backup-switch"><input id="includeBackupNotes" type="checkbox"><span class="backup-slider"></span><span><b>Include Notes in Backup</b><br><span class="small">Turn this on only when you want personal notes included.</span></span></label>
@@ -970,7 +975,7 @@ textarea.publisher-address-field{
 <div class="actions"><button id="shareBackup">Save / Share Backup</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
 <p class="small">For privacy, notes are excluded from backups unless the slider is turned on. Your notes on this device are never deleted by turning it off.</p>
 <p class="small">On iPhone/iPad, <b>Save / Share Backup</b> can use <b>Save to Files</b>. For importing from OneDrive or another cloud service on iPhone/iPad: open the <b>Files</b> app, tap <b>Browse</b> → <b>OneDrive</b> (or another location), find your backup, then use <b>Copy</b> or <b>Move</b> to place the backup in <b>On My iPhone</b>. Return here and tap <b>Import Group Data</b> to select it.</p></div>
-<div class="card"><h3>Local Storage</h3><p class="small">This app uses one fixed local data key. Keep using the same app folder/file when updating the program so the browser can retain its local data. The export backup is the safe way to move data to another elder's device.</p>
+<div class="card settings-card danger-zone"><h3>Danger Zone</h3><p class="small">These actions can remove data from this device. Make a backup first if you are not sure.</p>
 <button id="clearData" class="danger">Erase This Device's Group Data</button></div>
 </section>
 
@@ -2015,15 +2020,30 @@ function restoreSyncStatus(){
 function updateCloudUI(){
  const connected=!!sb;
  const signedIn=!!cloudUser;
- $("cloudAuth").style.display=connected?"block":"none";
+ const loginToggle=$("cloudLoginToggle");
+ const loginOpen=loginToggle?.dataset.open==="true";
+ $("cloudAuth").style.display=connected&&!signedIn&&loginOpen?"block":"none";
  $("cloudDataActions").style.display=signedIn?"block":"none";
  $("cloudSignIn").style.display=signedIn?"none":"inline-block";
  $("cloudSignUp").style.display=signedIn?"none":"inline-block";
- $("cloudSignOut").style.display=signedIn?"inline-block":"none";
- $("saveCloudProfile").style.display=signedIn?"inline-block":"none";
- if(signedIn){const meta=cloudUser.user_metadata||{}; $("cloudEmail").value=cloudUser.email||""; $("cloudFirstName").value=meta.first_name||""; $("cloudLastName").value=meta.last_name||"";}
+ $("cloudSignOut").style.display="none";
+ $("saveCloudProfile").style.display="none";
+ if(signedIn){
+   const meta=cloudUser.user_metadata||{};
+   $("cloudEmail").value=cloudUser.email||"";
+   $("cloudFirstName").value=meta.first_name||"";
+   $("cloudLastName").value=meta.last_name||"";
+ }
  restoreSyncStatus();
- $("cloudUserStatus").textContent=signedIn?"Signed in as "+(currentUserDisplayName()||cloudUser.email||"your cloud account")+".":(connected?"Connected. Sign in to an existing account or create a new one.":"No cloud account signed in.");
+ $("cloudUserStatus").textContent=signedIn?"Logged in as "+(currentUserDisplayName()||cloudUser.email||"your cloud account")+" ("+(cloudUser.email||"")+")":(connected?"Not currently logged in.":"Not connected.");
+ if(loginToggle){
+   loginToggle.style.display=signedIn?"none":(connected?"inline-block":"none");
+   loginToggle.textContent=loginOpen?"Hide Login":"Log In";
+ }
+ const summary=$("cloudAccountSummary");
+ if(summary) summary.style.display=connected?"block":"none";
+ const logoutSummary=$("cloudLogoutSummary");
+ if(logoutSummary) logoutSummary.style.display=signedIn?"inline-block":"none";
 }
 async function connectSupabase(){
  const url=$("supabaseUrl").value.trim(),key=$("supabaseKey").value.trim();
@@ -2390,6 +2410,18 @@ setInterval(()=>checkForSharedUpdates("interval"),15000);
 setInterval(()=>refreshSharedMembership("interval"),15000);
 window.addEventListener("focus",()=>setTimeout(()=>refreshSharedMembership("focus"),150));
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")setTimeout(()=>refreshSharedMembership("resume"),150)});
+const cloudLoginToggle=$("cloudLoginToggle");
+if(cloudLoginToggle){
+  cloudLoginToggle.onclick=()=>{
+    const open=cloudLoginToggle.dataset.open==="true";
+    cloudLoginToggle.dataset.open=String(!open);
+    updateCloudUI();
+  };
+}
+const cloudLogoutSummary=$("cloudLogoutSummary");
+if(cloudLogoutSummary){
+  cloudLogoutSummary.onclick=()=>cloudSignOut();
+}
 const toggleCloudPassword=$("toggleCloudPassword");
 if(toggleCloudPassword){
   toggleCloudPassword.onclick=()=>{
@@ -2403,5 +2435,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.47</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.48</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
