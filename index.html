@@ -17,7 +17,7 @@ button.secondary{background:#e7ebf1;color:#17202a}button.danger{background:#b423
 label{display:block;font-weight:700;font-size:13px;margin:11px 0 5px}
 input,select,textarea{display:block;width:100%;min-height:40px;padding:9px 11px;border:1px solid #bdc5d0;border-radius:7px;background:#fff;font:inherit}
 textarea{min-height:90px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}.settings-card h3{margin:0 0 10px}.status-box,.account-summary{margin:12px 0;padding:12px;border:1px solid #d8dde5;border-radius:9px;background:#f8fafc}.account-summary .actions{margin-top:10px}.danger-zone{border-color:#e6b8b4}.danger-zone h3{color:#9f1d16}@media(max-width:650px){.row{grid-template-columns:1fr}}
+.password-row{display:flex;gap:8px;align-items:center}.password-row input{flex:1}.password-row button{white-space:nowrap}.settings-card h3{margin:0 0 10px}.advanced-settings{margin:12px 0}.advanced-settings summary{cursor:pointer;font-weight:700}.advanced-settings[open]{padding-bottom:4px}.status-box,.account-summary{margin:12px 0;padding:12px;border:1px solid #d8dde5;border-radius:9px;background:#f8fafc}.account-summary .actions{margin-top:10px}.danger-zone{border-color:#e6b8b4}.danger-zone h3{color:#9f1d16}@media(max-width:650px){.row{grid-template-columns:1fr}}
 table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #e1e4e8;text-align:left}
 .call{width:100%;text-align:left;margin:5px 0;background:#eef2f7;color:#17202a}.shepherding-calls-card{margin-top:16px}.completed-calls-card{margin-top:14px}.completed-calls-card h3{color:#4d5968}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e8edf5;font-size:12px}
 .modal{
@@ -946,6 +946,12 @@ textarea.publisher-address-field{
 <h3>Shared Cloud</h3>
 <p class="small">Your group stays synchronized for authorized App Members. Connection details are kept in this browser.</p>
 <div class="status-box"><b>Connection:</b> <span id="cloudStatus">Not connected</span><br><span id="cloudSyncStatus" class="small">Sync status: Not synced</span></div>
+<details class="advanced-settings">
+<summary>Advanced Connection Settings</summary>
+<p class="small">Only use this section when setting up or changing the Shared Cloud connection. Your publishable key is intended for browser use; never enter a secret/service-role key.</p>
+<div class="row"><div><label>Supabase Project URL</label><input id="supabaseUrl" type="url" placeholder="https://your-project.supabase.co" autocomplete="off"></div><div><label>Supabase Publishable Key</label><input id="supabaseKey" type="password" placeholder="sb_publishable_..." autocomplete="off"></div></div>
+<div class="actions"><button id="connectSupabase">Connect</button></div>
+</details>
 <div id="cloudAccountSummary" class="account-summary">
   <div><b>Cloud Account</b></div>
   <div id="cloudUserStatus" class="small">Not currently logged in.</div>
