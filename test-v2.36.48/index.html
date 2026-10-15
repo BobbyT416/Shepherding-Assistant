@@ -822,6 +822,8 @@ textarea.publisher-address-field{
 #dashboard .dashboard-empty{padding:4px 0 2px;color:#667085}
 #dashboard .dashboard-section-note{font-size:12px;color:#667085;margin:-4px 0 9px}
 @media(max-width:700px){#dashboard .dashboard-section-card h3{font-size:17px;justify-content:flex-start}#dashboard .dashboard-section-card .call{font-size:13px;padding:10px 11px}}
+
+.settings-intro{margin-top:-6px;margin-bottom:14px}.settings-status-card{padding:12px 14px}.settings-section-card h3{margin-top:0}.settings-cloud-summary{padding:4px 0 8px}.settings-subdetails{margin-top:10px;border-top:1px solid #e2e6eb;padding-top:10px}.settings-subdetails summary,.settings-danger-zone summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:650;padding:7px 0}.settings-subdetails summary::-webkit-details-marker,.settings-danger-zone summary::-webkit-details-marker{display:none}.settings-subdetails summary:after,.settings-danger-zone summary:after{content:'+';font-size:20px;color:#687385;font-weight:400}.settings-subdetails[open] summary:after,.settings-danger-zone[open] summary:after{content:'−'}.settings-danger-zone{margin-top:20px;border:1px solid #d9a39b;border-radius:12px;overflow:hidden;background:rgba(180,35,24,.035)}.settings-danger-zone>summary{padding:14px 16px}.danger-zone-title{display:flex;align-items:center;gap:8px;color:#a12b20;font-weight:700}.danger-zone-content{border-top:1px solid #e6c4bf;padding:14px 16px 16px}.danger-zone-content h3{margin:8px 0}.danger-zone-content .danger{margin-top:5px}.settings-danger-zone[open]>summary{border-bottom:1px solid #e6c4bf}@media(max-width:640px){.settings-danger-zone>summary{align-items:flex-start}.settings-danger-zone>summary .small{max-width:110px;text-align:right}}
 </style>
 
 <link rel="manifest" href="https://bobbyt416.github.io/Shepherding-Assistant/manifest.webmanifest">
@@ -930,48 +932,64 @@ textarea.publisher-address-field{
 </section>
 
 <section id="settings" class="page">
-<h2>Settings & Local & Shared Cloud Data</h2><div class="card"><b>Storage status:</b> <span id="storageStatus">Local data active</span></div>
-<div class="card"><label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
-<p class="small">A publisher is flagged when the last completed shepherding call is older than this interval.</p></div>
+<h2>Settings</h2>
+<p class="small settings-intro">Manage your reminders, shared group, and backups.</p>
+<div class="card settings-status-card"><b>Device storage:</b> <span id="storageStatus">Local data active</span></div>
+<div class="card">
+<label>Shepherding reminder interval (months)</label><input id="reminderMonths" type="number" min="1" max="24">
+<p class="small">Flag publishers whose last completed shepherding call is older than this interval.</p></div>
 <div class="card" id="myGroupsCard" style="display:none">
 <h3>My Groups</h3>
-<p class="small">These are the Field Service Groups your account is authorized to access. Publishers do not have app accounts or access.</p>
+<p class="small">Field Service Groups your account is authorized to access.</p>
 <div id="myGroupsList"><p class="small">Sign in to view your groups.</p></div>
 <div class="actions"><button id="createNewGroup" class="secondary">+ Create New Group</button></div>
 </div>
-<div class="card">
-<h3>Shared Cloud (Supabase)</h3>
-<p class="small">Automatic cloud sync keeps authorized App Members up to date while version protection prevents one person's changes from silently overwriting another's. The publishable key is safe for browser use; never enter a secret/service-role key here.</p>
+<div class="card settings-section-card">
+<h3>Backup &amp; Restore</h3>
+<p class="small">Save a copy of your group data or restore from a previous backup. This is separate from cloud sync.</p>
+<div class="actions"><button id="shareBackup">Save Backup</button><button id="importData" class="secondary">Restore Backup</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
+<details class="settings-subdetails"><summary>Backup options and help</summary>
+<div class="backup-options">
+<label class="backup-switch"><input id="includeBackupNotes" type="checkbox"><span class="backup-slider"></span><span><b>Include Notes in Backup</b><br><span class="small">Notes are excluded unless you turn this on.</span></span></label>
+</div>
+<p class="small">Turning this option off does not delete notes stored on this device.</p>
+<p class="small">On iPhone/iPad, choose Save to Files when saving. To restore from OneDrive or another cloud service, use the Files app to copy the backup to On My iPhone/iPad, then choose Restore Backup.</p>
+</details>
+</div>
+<div class="card settings-section-card">
+<h3>Shared Cloud</h3>
+<div class="settings-cloud-summary"><div><b>Connection:</b> <span id="cloudStatus">Not connected</span><br><span id="cloudUserStatus" class="small">No cloud account signed in.</span><br><span id="cloudSyncStatus" class="small">Sync status: Not synced</span></div></div>
+<details class="settings-subdetails">
+<summary>Cloud account and connection settings</summary>
+<p class="small">Cloud sync keeps authorized App Members up to date. Use your project's publishable key only; never enter a secret/service-role key.</p>
 <div class="row"><div><label>Supabase Project URL</label><input id="supabaseUrl" type="url" placeholder="https://your-project.supabase.co" autocomplete="off"></div><div><label>Supabase Publishable Key</label><input id="supabaseKey" type="password" placeholder="sb_publishable_..." autocomplete="off"></div></div>
 <div class="actions"><button id="connectSupabase">Connect</button><button id="disconnectSupabase" class="secondary">Disconnect</button></div>
-<div class="card" style="margin:13px 0 0"><b>Connection:</b> <span id="cloudStatus">Not connected</span><br><span id="cloudUserStatus" class="small">No cloud account signed in.</span><br><span id="cloudSyncStatus" class="small">Sync status: Not synced</span></div>
 <div id="cloudAuth" style="display:none">
-<h4 style="margin:0 0 8px">Cloud Account</h4>
-<p class="small">Use your own Shepherding Assistant account. Your group administrator adds your account to the shared group after you create it.</p>
+<h4 style="margin:12px 0 8px">Cloud Account</h4>
+<p class="small">Sign in with your Shepherding Assistant account. Your group administrator adds your account to the shared group after you create it.</p>
 <label>Email</label><input id="cloudEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false">
 <div class="row"><div><label>First Name</label><input id="cloudFirstName" type="text" autocomplete="given-name" placeholder="First name"></div><div><label>Last Name</label><input id="cloudLastName" type="text" autocomplete="family-name" placeholder="Last name"></div></div>
-<p class="small">Your name is used to identify you in Admin Access and activity history.</p>
+<p class="small">Your name identifies you in Admin Access and activity history.</p>
 <label>Password</label><div class="password-row"><input id="cloudPassword" type="password" autocomplete="current-password"><button id="toggleCloudPassword" type="button" class="secondary" aria-pressed="false">Show</button></div>
-<p class="small">Use Show if you need to verify the password you entered.</p>
 <div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="saveCloudProfile" class="secondary" style="display:none">Save Name</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
 </div>
 <div id="cloudDataActions" style="display:none">
 <p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
 <div class="actions"><button id="loadSharedData" class="secondary">Load Shared Group Data</button><button id="saveSharedData">Save Changes to Shared Group</button></div>
-<p id="sharedAccessHelp" class="small">Shared group data is stored in the group's cloud record. Loading replaces this device's current group data after confirmation. Saving uses version protection so a stale copy cannot overwrite another App Member's newer changes.</p>
+<p id="sharedAccessHelp" class="small">Loading replaces this device's group data after confirmation. Saving uses version protection to prevent a stale copy from overwriting newer changes.</p>
 <p id="sharedSaveNotice" class="small" style="margin-top:6px"></p>
 </div>
+</details>
 </div>
-<div class="card"><h3>Transfer / Backup</h3>
-<p>Backup files are separate from Shared Cloud sync. Use one backup option to save or share a local copy of the group data.</p>
-<div class="backup-options">
-<label class="backup-switch"><input id="includeBackupNotes" type="checkbox"><span class="backup-slider"></span><span><b>Include Notes in Backup</b><br><span class="small">Turn this on only when you want personal notes included.</span></span></label>
+<details class="settings-danger-zone">
+<summary><span class="danger-zone-title"><span aria-hidden="true">⚠</span> Danger Zone</span><span class="small">Destructive actions</span></summary>
+<div class="danger-zone-content">
+<p class="small">These actions can remove information from this device. They do not delete the shared cloud group.</p>
+<h3>Clear local group data</h3>
+<p class="small">Removes the group data stored on this device. Export a backup first if you may need this information again.</p>
+<button id="clearData" class="danger">Erase This Device's Group Data</button>
 </div>
-<div class="actions"><button id="shareBackup">Save / Share Backup</button><button id="importData" class="secondary">Import Group Data</button><input id="importFile" type="file" accept=".json,application/json" style="display:none"></div>
-<p class="small">For privacy, notes are excluded from backups unless the slider is turned on. Your notes on this device are never deleted by turning it off.</p>
-<p class="small">On iPhone/iPad, <b>Save / Share Backup</b> can use <b>Save to Files</b>. For importing from OneDrive or another cloud service on iPhone/iPad: open the <b>Files</b> app, tap <b>Browse</b> → <b>OneDrive</b> (or another location), find your backup, then use <b>Copy</b> or <b>Move</b> to place the backup in <b>On My iPhone</b>. Return here and tap <b>Import Group Data</b> to select it.</p></div>
-<div class="card"><h3>Local Storage</h3><p class="small">This app uses one fixed local data key. Keep using the same app folder/file when updating the program so the browser can retain its local data. The export backup is the safe way to move data to another elder's device.</p>
-<button id="clearData" class="danger">Erase This Device's Group Data</button></div>
+</details>
 </section>
 
 <div id="modal" class="modal"><div class="modalbox" id="modalBox"></div></div>
@@ -2432,5 +2450,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.52</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.53</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
