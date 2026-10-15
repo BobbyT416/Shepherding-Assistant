@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Shepherding Assistant v2.36.51: test-folder asset paths fixed; backup safeguards retained -->
+<!-- Shepherding Assistant v2.36.52: safer local save retry; test-folder asset paths retained -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shepherding Assistant</title>
@@ -1070,18 +1070,12 @@ function persist(markDirty=true){
  try{
    localStorage.setItem(DATA_KEY,serialized);
  }catch(firstError){
-   // Retry a replacement write once if the existing record is preventing it.
-   // Preserve the previous stored record if the new value still cannot be saved.
-   let oldData=null;
-   try{oldData=localStorage.getItem(DATA_KEY)}catch(readError){}
+   // Retry once without deleting or replacing the existing saved record first.
+   // localStorage.setItem is atomic: if it fails, the previous value remains.
    try{
-     localStorage.removeItem(DATA_KEY);
      localStorage.setItem(DATA_KEY,serialized);
    }catch(retryError){
-     try{
-       if(oldData!==null)localStorage.setItem(DATA_KEY,oldData);
-     }catch(restoreError){}
-     alert("Unable to save the group information on this device. The existing saved data was left unchanged.");
+     alert("Unable to save the group information on this device. The previously saved record was not deliberately removed; please free browser storage space and try again.");
      throw retryError;
    }
  }
@@ -2438,5 +2432,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.51</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.52</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
