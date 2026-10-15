@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Shepherding Assistant v2.36.50: backup restore safety fix -->
+<!-- Shepherding Assistant v2.36.48: safer local backup restore -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shepherding Assistant</title>
@@ -1069,16 +1069,11 @@ function persist(markDirty=true){
  const serialized=JSON.stringify(db);
  try{
    localStorage.setItem(DATA_KEY,serialized);
- }catch(e){
-   // Preserve the existing local copy if the replacement write fails.
-   // Retry once after removing the old record, then restore it if needed.
+ }catch(firstError){
+   // Retry a replacement write once if the existing record is preventing it.
+   // Preserve the previous stored record if the new value still cannot be saved.
    let oldData=null;
-   try{
-     oldData=localStorage.getItem(DATA_KEY);
-   }catch(readError){
-     alert("Unable to save the group information on this device. The existing data was not intentionally changed.");
-     throw e;
-   }
+   try{oldData=localStorage.getItem(DATA_KEY)}catch(readError){}
    try{
      localStorage.removeItem(DATA_KEY);
      localStorage.setItem(DATA_KEY,serialized);
@@ -1086,7 +1081,7 @@ function persist(markDirty=true){
      try{
        if(oldData!==null)localStorage.setItem(DATA_KEY,oldData);
      }catch(restoreError){}
-     alert("Unable to save the group information on this device. The existing data was left unchanged.");
+     alert("Unable to save the group information on this device. The existing saved data was left unchanged.");
      throw retryError;
    }
  }
@@ -2396,7 +2391,7 @@ function importBackupFile(f){
    let x;
    try{
      x=JSON.parse(r.result);
-     if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls))throw Error("Invalid backup structure");
+     if(!x||x.version!==2||!x.group||!Array.isArray(x.publishers)||!Array.isArray(x.calls))throw Error("invalid-backup");
    }catch(err){
      alert("That backup file is not a valid Shepherding Assistant V2 backup.");
      $("importFile").value="";
@@ -2409,7 +2404,6 @@ function importBackupFile(f){
        persist();
        alert("Group data imported successfully.");
      }catch(err){
-       // persist() reports the storage failure. Restore the in-memory data too.
        db=previousDb;
        try{render()}catch(renderError){}
      }
@@ -2444,5 +2438,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.50</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.48</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
