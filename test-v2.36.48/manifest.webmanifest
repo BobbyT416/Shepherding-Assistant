@@ -1,0 +1,23 @@
+{
+  "name": "Shepherding Assistant \u2014 Test",
+  "short_name": "Shepherding Test",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#0b5ed7",
+  "icons": [
+    {
+      "src": "https://bobbyt416.github.io/Shepherding-Assistant/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://bobbyt416.github.io/Shepherding-Assistant/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

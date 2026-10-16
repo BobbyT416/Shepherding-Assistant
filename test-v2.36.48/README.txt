@@ -1,13 +1,18 @@
-Shepherding Assistant v2.36.54 TEST — Password Recovery
+SHEPHERDING ASSISTANT — TEST HOME-SCREEN CONFIGURATION FIX
 
-This is a TEST-ONLY build that adds:
-- A "Forgot Password / Send Recovery Email" button.
-- A new-password panel shown when Supabase emits PASSWORD_RECOVERY.
-- New-password confirmation and save via Supabase auth.updateUser({ password }).
+Upload BOTH files in this ZIP to the existing GitHub Pages test folder:
+  test-v2.36.48/
 
-Important:
-- This is not the complete granular-permissions/Supabase security migration build.
-- Do not replace production main/index.html with this file.
-- For recovery links to return to the test site, add the exact test-site URL to Supabase Dashboard > Authentication > URL Configuration > Redirect URLs. Do not change Site URL just for this test.
-- Recovery emails already sent may still open the main site. Request a new recovery email from this test build after the redirect URL is allow-listed.
-- Existing account and group memberships are not deleted or changed by this code.
+Replace that folder's index.html with this index.html, and add/replace
+manifest.webmanifest in that same folder.
+
+Do NOT upload either file to the repository root or the production main page.
+Do NOT change the production manifest or main/index.html.
+
+After the files are uploaded, open this exact test URL in Safari:
+https://bobbyt416.github.io/Shepherding-Assistant/test-v2.36.48/
+
+Verify that it shows the test build before adding the Home Screen shortcut.
+If the shortcut still opens production after this fix, the next diagnostic
+is to inspect the exact URL shown in Safari immediately after tapping the
+shortcut; do not repeat the same setup steps.
