@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<!-- Shepherding Assistant v2.36.52: safer local save retry; test-folder asset paths retained -->
+<!-- Shepherding Assistant v2.36.54 TEST: password recovery flow added; test-only build -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shepherding Assistant</title>
@@ -972,6 +972,15 @@ textarea.publisher-address-field{
 <p class="small">Your name identifies you in Admin Access and activity history.</p>
 <label>Password</label><div class="password-row"><input id="cloudPassword" type="password" autocomplete="current-password"><button id="toggleCloudPassword" type="button" class="secondary" aria-pressed="false">Show</button></div>
 <div class="actions"><button id="cloudSignIn">Sign In</button><button id="cloudSignUp" class="secondary">Create Account</button><button id="saveCloudProfile" class="secondary" style="display:none">Save Name</button><button id="cloudSignOut" class="danger" style="display:none">Sign Out</button></div>
+<div class="actions"><button id="sendPasswordRecovery" type="button" class="secondary">Forgot Password / Send Recovery Email</button></div>
+<div id="passwordRecoveryPanel" class="card" style="display:none;margin-top:12px">
+<h4 style="margin-top:0">Set a New Password</h4>
+<p class="small">You opened a password-recovery link. Enter your new password twice, then save it.</p>
+<label for="newCloudPassword">New Password</label><input id="newCloudPassword" type="password" autocomplete="new-password">
+<label for="confirmCloudPassword">Confirm New Password</label><input id="confirmCloudPassword" type="password" autocomplete="new-password">
+<div class="actions"><button id="saveNewCloudPassword" type="button">Save New Password</button></div>
+<p id="passwordRecoveryStatus" class="small"></p>
+</div>
 </div>
 <div id="cloudDataActions" style="display:none">
 <p><b>Shared group:</b> <span id="sharedGroupStatus">Checking group access…</span></p>
@@ -2050,12 +2059,54 @@ function updateCloudUI(){
  restoreSyncStatus();
  $("cloudUserStatus").textContent=signedIn?"Signed in as "+(currentUserDisplayName()||cloudUser.email||"your cloud account")+".":(connected?"Connected. Sign in to an existing account or create a new one.":"No cloud account signed in.");
 }
+
+function showPasswordRecoveryPanel(message=""){
+ const panel=$("passwordRecoveryPanel");
+ if(panel)panel.style.display="block";
+ const status=$("passwordRecoveryStatus");
+ if(status)status.textContent=message;
+}
+async function sendPasswordRecovery(){
+ if(!sb){alert("Connect to Supabase first.");return}
+ const email=$("cloudEmail").value.trim();
+ if(!email){alert("Enter your account email address first.");$("cloudEmail").focus();return}
+ const redirectTo=window.location.origin+window.location.pathname;
+ const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+ if(error){alert("Could not send password recovery email: "+error.message);return}
+ alert("Password recovery email sent. Open the newest email on this device. The link should return to this Shepherding Assistant page. If it opens another page, the test-site URL may need to be added to Supabase Authentication → URL Configuration → Redirect URLs.");
+}
+async function saveNewCloudPassword(){
+ if(!sb){alert("Connect to Supabase first.");return}
+ const password=$("newCloudPassword").value;
+ const confirmPassword=$("confirmCloudPassword").value;
+ if(password.length<6){alert("Enter a password of at least 6 characters.");return}
+ if(password!==confirmPassword){alert("The passwords do not match.");return}
+ const status=$("passwordRecoveryStatus");
+ if(status)status.textContent="Saving your new password…";
+ const {data,error}=await sb.auth.updateUser({password});
+ if(error){if(status)status.textContent="Password was not changed: "+error.message;return}
+ cloudUser=data.user||cloudUser;
+ $("cloudPassword").value="";
+ $("newCloudPassword").value="";
+ $("confirmCloudPassword").value="";
+ if(status)status.textContent="Password changed successfully. You can now sign in with the new password.";
+ $("passwordRecoveryPanel").style.display="block";
+ alert("Your password has been changed successfully.");
+}
+
 async function connectSupabase(){
  const url=$("supabaseUrl").value.trim(),key=$("supabaseKey").value.trim();
  if(!url||!key){alert("Enter the Supabase Project URL and Publishable Key.");return}
  if(!window.supabase||!window.supabase.createClient){alert("The Supabase library could not be loaded. Check your internet connection and try again.");return}
  try{
    sb=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+   sb.auth.onAuthStateChange((event,session)=>{
+     if(event==="PASSWORD_RECOVERY"){
+       cloudUser=session?.user||cloudUser;
+       updateCloudUI();
+       showPasswordRecoveryPanel("Recovery link accepted. Choose a new password below.");
+     }
+   });
    saveCloudConfig(url,key);
    const {data,error}=await sb.auth.getSession();
    if(error)throw error;
@@ -2329,6 +2380,8 @@ function initCloud(){
  $("connectSupabase").onclick=connectSupabase;
  $("disconnectSupabase").onclick=disconnectSupabase;
  $("cloudSignIn").onclick=cloudSignIn;
+ $("sendPasswordRecovery").onclick=sendPasswordRecovery;
+ $("saveNewCloudPassword").onclick=saveNewCloudPassword;
  $("cloudSignUp").onclick=cloudSignUp;
  $("cloudSignOut").onclick=cloudSignOut;
  $("saveCloudProfile").onclick=saveCloudProfile;
@@ -2450,5 +2503,5 @@ if(toggleCloudPassword){
 render();
 
 </script>
-<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.53</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
+<footer class="app-footer"><div><b>Shepherding Assistant</b></div><div>Intelligent Shepherding Management</div><div>Version <span id="appVersion">2.36.54 TEST — Password Recovery</span></div><div class="copyright">Group information is stored locally on this device. When you use Shared Cloud, you can load or save the shared group record for authorized members.</div></footer></body>
 </html>
